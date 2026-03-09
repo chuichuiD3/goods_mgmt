@@ -168,19 +168,20 @@ function detectYahooAuctionEnd(html: string): string | null {
 function detectMercariAuctionEnd(html: string): string | null {
   const text = stripHtmlTags(html);
 
-  // Mercari examples (approximate):
+  // Mercari examples:
   // "終了予定時刻 2026年3月13日（金）23:49"
+  // or without year: "終了予定時刻 3月10日 19:28"
   const primaryPattern =
-    /終了予定時刻[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
+    /終了予定時刻[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
   const primaryMatch = text.match(primaryPattern);
   if (primaryMatch) {
-    const iso = parseJapaneseDateTime(
-      primaryMatch[1],
-      primaryMatch[2],
-      primaryMatch[3],
-      primaryMatch[4],
-      primaryMatch[5]
-    );
+    const year = primaryMatch[2] ?? String(new Date().getFullYear());
+    const month = primaryMatch[3];
+    const day = primaryMatch[4];
+    const hour = primaryMatch[5];
+    const minute = primaryMatch[6];
+
+    const iso = parseJapaneseDateTime(year, month, day, hour, minute);
     if (iso) {
       console.log('detectMercariAuctionEnd: parsed 終了予定時刻', primaryMatch[0], '->', iso);
       return iso;
@@ -193,16 +194,16 @@ function detectMercariAuctionEnd(html: string): string | null {
 
   // Fallback: any Japanese "終了" label with datetime-like pattern
   const fallbackPattern =
-    /終了[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
+    /終了[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
   const fallbackMatch = text.match(fallbackPattern);
   if (fallbackMatch) {
-    const iso = parseJapaneseDateTime(
-      fallbackMatch[1],
-      fallbackMatch[2],
-      fallbackMatch[3],
-      fallbackMatch[4],
-      fallbackMatch[5]
-    );
+    const year = fallbackMatch[2] ?? String(new Date().getFullYear());
+    const month = fallbackMatch[3];
+    const day = fallbackMatch[4];
+    const hour = fallbackMatch[5];
+    const minute = fallbackMatch[6];
+
+    const iso = parseJapaneseDateTime(year, month, day, hour, minute);
     if (iso) {
       console.log('detectMercariAuctionEnd: parsed fallback 終了', fallbackMatch[0], '->', iso);
       return iso;
@@ -272,6 +273,8 @@ function detectAuctionLike(sourceUrl: string, html: string, auctionEndAt: string
   if (host.includes('mercari')) {
     if (
       text.includes('オークション商品') ||
+      text.includes('終了予定時刻') ||
+      text.includes('残り時間') ||
       text.includes('入札する') ||
       text.includes('入札')
     ) {
