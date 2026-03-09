@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-type RouteParams = {
-  params: { id: string };
+type RouteContext = {
+  params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   const draft = await prisma.importDraft.findUnique({ where: { id } });
 
   if (!draft) {
@@ -16,8 +17,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
   return NextResponse.json(draft);
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
 
   await prisma.importDraft.delete({ where: { id } });
 

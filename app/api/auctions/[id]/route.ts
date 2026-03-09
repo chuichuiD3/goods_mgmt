@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-type RouteParams = {
-  params: { id: string };
+type RouteContext = {
+  params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   const auction = await prisma.auction.findUnique({ where: { id } });
 
   if (!auction) {
@@ -16,8 +17,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
   return NextResponse.json(auction);
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   const body = await request.json();
 
   const auction = await prisma.auction.update({
@@ -40,8 +42,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
   return NextResponse.json(auction);
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
 
   await prisma.auction.delete({ where: { id } });
 

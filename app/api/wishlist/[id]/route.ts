@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-type RouteParams = {
-  params: { id: string };
+type RouteContext = {
+  params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   const item = await prisma.wishlistItem.findUnique({ where: { id } });
 
   if (!item) {
@@ -16,8 +17,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
   return NextResponse.json(item);
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   const body = await request.json();
 
   const item = await prisma.wishlistItem.update({
@@ -38,8 +40,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
   return NextResponse.json(item);
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const id = Number(params.id);
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { id: idString } = await context.params;
+  const id = Number(idString);
   await prisma.wishlistItem.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
