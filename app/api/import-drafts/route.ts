@@ -25,8 +25,33 @@ export async function POST(request: Request) {
   let html = '';
 
   try {
-    const res = await fetch(sourceUrl);
+    const url = new URL(sourceUrl);
+    let res: Response;
+
+    if (url.hostname.includes('mercari')) {
+      // Use a more browser-like request for Mercari to avoid degraded HTML
+      res = await fetch(sourceUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
+        },
+      });
+    } else {
+      res = await fetch(sourceUrl);
+    }
+
     html = await res.text();
+
+    if (url.hostname.includes('mercari')) {
+      const slice = html.slice(0, 2000);
+      console.log('Mercari HTML slice:', slice);
+      console.log('Mercari has オークション商品:', slice.includes('オークション商品'));
+      console.log('Mercari has 現在:', slice.includes('現在'));
+      console.log('Mercari has 終了予定時刻:', slice.includes('終了予定時刻'));
+    }
   } catch (error) {
     // If fetching fails, still create a draft with FAILED status
     const draft = await prisma.importDraft.create({
