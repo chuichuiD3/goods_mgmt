@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       currentPrice: body.currentPrice ?? null,
       myMaxBid: body.myMaxBid ?? null,
       auctionEndTime: body.auctionEndTime ? new Date(body.auctionEndTime) : null,
+      imageUrl: body.imageUrl ?? null,
       status: body.status ?? 'WATCHING',
       notes: body.notes ?? null,
     },

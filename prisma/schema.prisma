@@ -21,6 +21,7 @@ model Auction {
   currentPrice   Float?
   myMaxBid       Float?
   auctionEndTime DateTime?
+  imageUrl       String?
   status         String    @default("WATCHING")
   notes          String?
   createdAt      DateTime  @default(now())
@@ -36,6 +37,7 @@ model WishlistItem {
   sourcePlatform String?
   sourceUrl      String?
   expectedPrice  Float?
+  imageUrl       String?
   priority       String    @default("MEDIUM")
   notes          String?
   addedAt        DateTime  @default(now())

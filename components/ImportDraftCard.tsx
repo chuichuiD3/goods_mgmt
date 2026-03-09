@@ -9,6 +9,7 @@ type ImportDraftCardProps = {
   currency: string;
   auctionEndAt: string | null;
   recommendedDestination: "AUCTION" | "COLLECTION";
+  onChangeImage: (imageDataUrl: string | null) => void;
   onSaveAsAuction: () => void;
   onSaveAsWishlist: () => void;
   onSaveAsCollection: () => void;
@@ -23,10 +24,26 @@ export function ImportDraftCard({
   currency,
   auctionEndAt,
   recommendedDestination,
+  onChangeImage,
   onSaveAsAuction,
   onSaveAsWishlist,
   onSaveAsCollection,
 }: ImportDraftCardProps) {
+  const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      onChangeImage(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        onChangeImage(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-3 rounded border bg-white p-4 text-sm shadow-sm">
       <div className="space-y-1">
@@ -75,17 +92,26 @@ export function ImportDraftCard({
         </div>
       </div>
 
-      {imageUrl && (
-        <div>
-          <div className="text-xs font-medium text-zinc-500">Preview</div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={title ?? "Imported image"}
-            className="mt-1 max-h-40 w-auto rounded border object-contain"
-          />
-        </div>
-      )}
+      <div className="space-y-1">
+        <label className="block text-xs font-medium">Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageFile}
+          className="mt-1 text-xs"
+        />
+        {imageUrl && (
+          <div>
+            <div className="text-xs font-medium text-zinc-500">Preview</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt={title ?? "Imported image"}
+              className="mt-1 max-h-40 w-auto rounded border object-contain"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2 pt-2">
         <button

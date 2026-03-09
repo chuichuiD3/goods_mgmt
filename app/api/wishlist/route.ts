@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       sourcePlatform: body.sourcePlatform ?? null,
       sourceUrl: body.sourceUrl ?? null,
       expectedPrice: body.expectedPrice ?? null,
+      imageUrl: body.imageUrl ?? null,
       priority: body.priority ?? 'MEDIUM',
       notes: body.notes ?? null,
     },

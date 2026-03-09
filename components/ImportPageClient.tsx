@@ -40,6 +40,8 @@ export function ImportPageClient() {
   const [manualPrice, setManualPrice] = useState<string>("");
   const [manualCurrency, setManualCurrency] = useState("JPY");
   const [manualAuctionEnd, setManualAuctionEnd] = useState<string>("");
+  const [manualImage, setManualImage] = useState<string | null>(null);
+  const [importImage, setImportImage] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -58,6 +60,7 @@ export function ImportPageClient() {
       });
       const data: ImportResponse = await res.json();
       setResult(data);
+      setImportImage(data.parsed.rawImage ?? null);
     } catch (error) {
       console.error(error);
       setMessage("Import failed. Please try again.");
@@ -154,6 +157,7 @@ export function ImportPageClient() {
               manualAuctionEnd.trim() !== ""
                 ? new Date(manualAuctionEnd).toISOString()
                 : null,
+            imageUrl: manualImage ?? null,
           }),
         });
       } else if (manualDestination === "wishlist") {
@@ -165,6 +169,7 @@ export function ImportPageClient() {
             expectedPrice: priceNumber ?? undefined,
             sourcePlatform: manualPlatform || null,
             sourceUrl: manualSourceUrl || null,
+            imageUrl: manualImage ?? null,
           }),
         });
       } else {
@@ -179,7 +184,7 @@ export function ImportPageClient() {
             totalAmount: priceNumber ?? 0,
             platform: manualPlatform || null,
             status: "OWNED",
-            imageUrl: null,
+            imageUrl: manualImage ?? null,
             sourceType: "DIRECT_PURCHASE",
           }),
         });
@@ -191,6 +196,7 @@ export function ImportPageClient() {
       setManualSourceUrl("");
       setManualPrice("");
       setManualAuctionEnd("");
+      setManualImage(null);
     } catch (error) {
       console.error(error);
       setMessage("Manual save failed. Please try again.");
@@ -310,6 +316,42 @@ export function ImportPageClient() {
               </div>
             )}
 
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) {
+                    setManualImage(null);
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    if (typeof reader.result === "string") {
+                      setManualImage(reader.result);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="mt-1 text-xs"
+              />
+              {manualImage && (
+                <div>
+                  <div className="text-xs font-medium text-zinc-500">
+                    Preview
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={manualImage}
+                    alt="Manual uploaded"
+                    className="mt-1 max-h-40 w-auto rounded border object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
@@ -364,11 +406,12 @@ export function ImportPageClient() {
                 sourceUrl={result.parsed.sourceUrl}
                 platform={result.parsed.platform}
                 title={result.parsed.rawTitle}
-                imageUrl={result.parsed.rawImage}
+                imageUrl={importImage}
                 listedPrice={result.parsed.listedPrice}
                 currency={result.parsed.currency}
                 auctionEndAt={result.parsed.auctionEndAt}
                 recommendedDestination={result.parsed.recommendedDestination}
+                onChangeImage={setImportImage}
                 onSaveAsAuction={() => saveAs("auction")}
                 onSaveAsCollection={() => saveAs("item")}
                 onSaveAsWishlist={() => saveAs("wishlist")}
