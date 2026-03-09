@@ -22,6 +22,11 @@ export type ImportParseResult = {
   recommendedDestination: Destination;
 };
 
+function stripHtmlTags(html: string): string {
+  // Replace tags with spaces so text from different cells still separates
+  return html.replace(/<[^>]*>/g, ' ');
+}
+
 function extractMetaContent(html: string, property: string): string | null {
   const regex = new RegExp(
     `<meta[^>]+property=["']${property}["'][^>]*content=["']([^"']+)["'][^>]*>`,
@@ -110,10 +115,12 @@ function parseJapaneseDateTime(
 }
 
 function detectYahooAuctionEnd(html: string): string | null {
+  const text = stripHtmlTags(html);
+
   // Primary source: 終了日時
   const primaryPattern =
     /終了日時[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})時(\d{1,2})分/;
-  const primaryMatch = html.match(primaryPattern);
+  const primaryMatch = text.match(primaryPattern);
   if (primaryMatch) {
     const iso = parseJapaneseDateTime(
       primaryMatch[1],
@@ -135,7 +142,7 @@ function detectYahooAuctionEnd(html: string): string | null {
   // Fallback: 終了予定
   const fallbackPattern =
     /終了予定[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})時(\d{1,2})分/;
-  const fallbackMatch = html.match(fallbackPattern);
+  const fallbackMatch = text.match(fallbackPattern);
   if (fallbackMatch) {
     const iso = parseJapaneseDateTime(
       fallbackMatch[1],
@@ -159,11 +166,13 @@ function detectYahooAuctionEnd(html: string): string | null {
 }
 
 function detectMercariAuctionEnd(html: string): string | null {
+  const text = stripHtmlTags(html);
+
   // Mercari examples (approximate):
   // "終了予定時刻 2026年3月13日（金）23:49"
   const primaryPattern =
     /終了予定時刻[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
-  const primaryMatch = html.match(primaryPattern);
+  const primaryMatch = text.match(primaryPattern);
   if (primaryMatch) {
     const iso = parseJapaneseDateTime(
       primaryMatch[1],
@@ -185,7 +194,7 @@ function detectMercariAuctionEnd(html: string): string | null {
   // Fallback: any Japanese "終了" label with datetime-like pattern
   const fallbackPattern =
     /終了[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
-  const fallbackMatch = html.match(fallbackPattern);
+  const fallbackMatch = text.match(fallbackPattern);
   if (fallbackMatch) {
     const iso = parseJapaneseDateTime(
       fallbackMatch[1],
@@ -241,7 +250,7 @@ function detectAuctionLike(sourceUrl: string, html: string, auctionEndAt: string
       return '';
     }
   })();
-  const text = html;
+  const text = stripHtmlTags(html);
   const lower = text.toLowerCase();
 
   // If we already parsed an end time, it's clearly an auction
