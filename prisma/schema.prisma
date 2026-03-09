@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Auction {
+  id             Int       @id @default(autoincrement())
+  itemName       String
+  series         String?
+  character      String?
+  category       String?
+  platform       String?
+  auctionUrl     String?
+  currentPrice   Float?
+  myMaxBid       Float?
+  auctionEndTime DateTime?
+  status         String    @default("WATCHING")
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model WishlistItem {
+  id             Int       @id @default(autoincrement())
+  itemName       String
+  series         String?
+  character      String?
+  category       String?
+  sourcePlatform String?
+  sourceUrl      String?
+  expectedPrice  Float?
+  priority       String    @default("MEDIUM")
+  notes          String?
+  addedAt        DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Item {
+  id             Int       @id @default(autoincrement())
+  itemName       String
+  series         String?
+  character      String?
+  category       String?
+  platform       String?
+  shop           String?
+  price          Float
+  quantity       Int       @default(1)
+  totalAmount    Float
+  currency       String    @default("JPY")
+  status         String    @default("PENDING_PAYMENT")
+  orderDate      DateTime?
+  paymentDeadline DateTime?
+  paidAt         DateTime?
+  isPresale      Boolean   @default(false)
+  sourceType     String   @default("DIRECT_PURCHASE")
+  sourceOrderId  String?
+  imageUrl       String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model ImportDraft {
+  id           Int            @id @default(autoincrement())
+  sourceUrl    String
+  platform     String?
+  rawTitle     String?
+  rawPrice     String?
+  rawImage     String?
+  detectedType String   @default("UNKNOWN")
+  parseStatus  String   @default("PARTIAL")
+  rawPayload   String?
+  createdAt    DateTime        @default(now())
+}

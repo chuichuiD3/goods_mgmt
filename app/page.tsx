@@ -1,65 +1,143 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 
-export default function Home() {
+export default async function Home() {
+  const [pendingItems, ownedItems] = await Promise.all([
+    prisma.item.findMany({
+      where: { status: 'PENDING_PAYMENT' },
+      orderBy: { paymentDeadline: 'asc' },
+      take: 5,
+    }),
+    prisma.item.findMany({
+      where: { status: 'OWNED' },
+      orderBy: { paidAt: 'desc' },
+      take: 3,
+    }),
+  ]);
+
+  const totalOwned = await prisma.item.aggregate({
+    where: { status: 'OWNED' },
+    _sum: { totalAmount: true },
+    _count: { _all: true },
+  });
+
+  const totalPending = await prisma.item.aggregate({
+    where: { status: 'PENDING_PAYMENT' },
+    _sum: { totalAmount: true },
+  });
+
+  const ownedCount = totalOwned._count._all ?? 0;
+  const ownedTotal = totalOwned._sum.totalAmount ?? 0;
+  const pendingTotal = totalPending._sum.totalAmount ?? 0;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-zinc-50">
+      <header className="border-b bg-white">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <h1 className="text-lg font-semibold">Goods management</h1>
+          <nav className="flex gap-4 text-sm">
+            <Link href="/auction" className="hover:underline">
+              Auctions
+            </Link>
+            <Link href="/collection" className="hover:underline">
+              Collection
+            </Link>
+            <Link href="/wishlist" className="hover:underline">
+              Wishlist
+            </Link>
+            <Link href="/import" className="hover:underline">
+              Import
+            </Link>
+          </nav>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded border bg-white p-4">
+            <div className="text-xs font-medium text-zinc-500">Owned items</div>
+            <div className="mt-1 text-2xl font-semibold">{ownedCount}</div>
+          </div>
+          <div className="rounded border bg-white p-4">
+            <div className="text-xs font-medium text-zinc-500">
+              Total spend (owned)
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {ownedTotal.toLocaleString()}
+            </div>
+          </div>
+          <div className="rounded border bg-white p-4">
+            <div className="text-xs font-medium text-zinc-500">
+              Pending payment total
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {pendingTotal.toLocaleString()}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="rounded border bg-white p-4">
+            <h2 className="text-sm font-semibold">Pending payments</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Items with status &ldquo;Pending payment&rdquo;.
+            </p>
+            <div className="mt-3 space-y-2 text-sm">
+              {pendingItems.length === 0 && (
+                <div className="text-xs text-zinc-500">No pending payments.</div>
+              )}
+              {pendingItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded border px-2 py-1"
+                >
+                  <div>
+                    <div className="font-medium">{item.itemName}</div>
+                    <div className="text-xs text-zinc-500">
+                      {item.platform ?? 'Unknown'} ·{' '}
+                      {item.paymentDeadline
+                        ? new Date(item.paymentDeadline).toLocaleDateString()
+                        : 'No deadline'}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {item.totalAmount.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded border bg-white p-4">
+            <h2 className="text-sm font-semibold">Recent items</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Latest owned items you added.
+            </p>
+            <div className="mt-3 space-y-2 text-sm">
+              {ownedItems.length === 0 && (
+                <div className="text-xs text-zinc-500">No items yet.</div>
+              )}
+              {ownedItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded border px-2 py-1"
+                >
+                  <div>
+                    <div className="font-medium">{item.itemName}</div>
+                    <div className="text-xs text-zinc-500">
+                      {item.series ?? ''} {item.character ? `· ${item.character}` : ''}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {item.totalAmount.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
+
