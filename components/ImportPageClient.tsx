@@ -31,6 +31,16 @@ export function ImportPageClient() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [manualDestination, setManualDestination] = useState<
+    "auction" | "collection" | "wishlist"
+  >("collection");
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualPlatform, setManualPlatform] = useState("");
+  const [manualSourceUrl, setManualSourceUrl] = useState("");
+  const [manualPrice, setManualPrice] = useState<string>("");
+  const [manualCurrency, setManualCurrency] = useState("JPY");
+  const [manualAuctionEnd, setManualAuctionEnd] = useState<string>("");
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -119,67 +129,257 @@ export function ImportPageClient() {
     }
   };
 
+  const handleManualSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setMessage(null);
+
+    const priceNumber =
+      manualPrice.trim() === "" ? null : Number(manualPrice.trim());
+
+    const common = {
+      itemName: manualTitle || "(Untitled)",
+    };
+
+    try {
+      if (manualDestination === "auction") {
+        await fetch("/api/auctions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...common,
+            platform: manualPlatform || null,
+            auctionUrl: manualSourceUrl || null,
+            currentPrice: priceNumber,
+            auctionEndTime:
+              manualAuctionEnd.trim() !== ""
+                ? new Date(manualAuctionEnd).toISOString()
+                : null,
+          }),
+        });
+      } else if (manualDestination === "wishlist") {
+        await fetch("/api/wishlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...common,
+            expectedPrice: priceNumber ?? undefined,
+            sourcePlatform: manualPlatform || null,
+            sourceUrl: manualSourceUrl || null,
+          }),
+        });
+      } else {
+        await fetch("/api/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...common,
+            price: priceNumber ?? 0,
+            quantity: 1,
+            currency: manualCurrency || "JPY",
+            totalAmount: priceNumber ?? 0,
+            platform: manualPlatform || null,
+            status: "OWNED",
+            imageUrl: null,
+            sourceType: "DIRECT_PURCHASE",
+          }),
+        });
+      }
+
+      setMessage("Saved successfully.");
+      setManualTitle("");
+      setManualPlatform("");
+      setManualSourceUrl("");
+      setManualPrice("");
+      setManualAuctionEnd("");
+    } catch (error) {
+      console.error(error);
+      setMessage("Manual save failed. Please try again.");
+    }
+  };
+
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <main className="mx-auto max-w-5xl px-4 py-6">
       <h1 className="mb-4 text-lg font-semibold">Import</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mb-6 space-y-3 rounded border bg-white p-4 text-sm"
-      >
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Source URL</label>
-          <input
-            required
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Paste product or auction URL"
-          />
-        </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Manual entry */}
+        <section className="space-y-3 rounded border bg-white p-4 text-sm">
+          <h2 className="text-sm font-semibold">Manual entry</h2>
+          <form onSubmit={handleManualSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Destination</label>
+              <div className="flex gap-3 text-xs">
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    value="collection"
+                    checked={manualDestination === "collection"}
+                    onChange={() => setManualDestination("collection")}
+                  />
+                  Collection
+                </label>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    value="auction"
+                    checked={manualDestination === "auction"}
+                    onChange={() => setManualDestination("auction")}
+                  />
+                  Auction
+                </label>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    value="wishlist"
+                    checked={manualDestination === "wishlist"}
+                    onChange={() => setManualDestination("wishlist")}
+                  />
+                  Wishlist
+                </label>
+              </div>
+            </div>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Type hint</label>
-          <select
-            value={hintType}
-            onChange={(e) => setHintType(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          >
-            <option value="UNKNOWN">Let app guess</option>
-            <option value="AUCTION">Auction</option>
-            <option value="WISHLIST">Wishlist</option>
-            <option value="PURCHASE">Purchase</option>
-          </select>
-        </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Title</label>
+              <input
+                type="text"
+                value={manualTitle}
+                onChange={(e) => setManualTitle(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+                required
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
-          {loading ? "Importing…" : "Import"}
-        </button>
-      </form>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Platform</label>
+                <input
+                  type="text"
+                  value={manualPlatform}
+                  onChange={(e) => setManualPlatform(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="e.g. Mercari, Xianyu"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Source URL</label>
+                <input
+                  type="url"
+                  value={manualSourceUrl}
+                  onChange={(e) => setManualSourceUrl(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Optional link to listing"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Price</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={manualPrice}
+                  onChange={(e) => setManualPrice(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Currency</label>
+                <input
+                  type="text"
+                  value={manualCurrency}
+                  onChange={(e) => setManualCurrency(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                />
+              </div>
+            </div>
+
+            {manualDestination === "auction" && (
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">
+                  Auction end time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={manualAuctionEnd}
+                  onChange={(e) => setManualAuctionEnd(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              Save
+            </button>
+          </form>
+        </section>
+
+        {/* URL import */}
+        <section className="space-y-3 rounded border bg-white p-4 text-sm">
+          <h2 className="text-sm font-semibold">Import from URL</h2>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Source URL</label>
+              <input
+                required
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+                placeholder="Paste product or auction URL"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Type hint</label>
+              <select
+                value={hintType}
+                onChange={(e) => setHintType(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+              >
+                <option value="UNKNOWN">Let app guess</option>
+                <option value="AUCTION">Auction</option>
+                <option value="WISHLIST">Wishlist</option>
+                <option value="PURCHASE">Purchase</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            >
+              {loading ? "Importing…" : "Import"}
+            </button>
+          </form>
+
+          {result && (
+            <div className="mt-4">
+              <ImportDraftCard
+                sourceUrl={result.parsed.sourceUrl}
+                platform={result.parsed.platform}
+                title={result.parsed.rawTitle}
+                imageUrl={result.parsed.rawImage}
+                listedPrice={result.parsed.listedPrice}
+                currency={result.parsed.currency}
+                auctionEndAt={result.parsed.auctionEndAt}
+                recommendedDestination={result.parsed.recommendedDestination}
+                onSaveAsAuction={() => saveAs("auction")}
+                onSaveAsCollection={() => saveAs("item")}
+                onSaveAsWishlist={() => saveAs("wishlist")}
+              />
+            </div>
+          )}
+        </section>
+      </div>
 
       {message && (
-        <div className="mb-4 text-xs text-zinc-600">{message}</div>
-      )}
-
-      {result && (
-        <ImportDraftCard
-          sourceUrl={result.parsed.sourceUrl}
-          platform={result.parsed.platform}
-          title={result.parsed.rawTitle}
-          imageUrl={result.parsed.rawImage}
-          listedPrice={result.parsed.listedPrice}
-          currency={result.parsed.currency}
-          auctionEndAt={result.parsed.auctionEndAt}
-          recommendedDestination={result.parsed.recommendedDestination}
-          onSaveAsAuction={() => saveAs("auction")}
-          onSaveAsCollection={() => saveAs("item")}
-          onSaveAsWishlist={() => saveAs("wishlist")}
-        />
+        <div className="mt-4 text-xs text-zinc-600">{message}</div>
       )}
     </main>
   );

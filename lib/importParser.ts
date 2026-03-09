@@ -357,6 +357,21 @@ export function parseImport(params: {
     recommendedDestination = 'COLLECTION';
   }
 
+  // Mercari fallback: do not trust auto-parsed price or end time for now
+  let safeListedPrice = listedPrice;
+  let safeCurrency = currency;
+  let safeAuctionEndAt = auctionEndAt;
+  try {
+    const host = new URL(sourceUrl).hostname.toLowerCase();
+    if (host.includes('mercari')) {
+      safeListedPrice = null;
+      safeCurrency = 'UNKNOWN';
+      safeAuctionEndAt = null;
+    }
+  } catch {
+    // ignore URL parse errors
+  }
+
   const hasAnyField = !!(rawTitle || rawImage || rawPrice);
   const parseStatus: ParseStatus = hasAnyField ? 'PARTIAL' : 'FAILED';
 
@@ -368,9 +383,9 @@ export function parseImport(params: {
     rawImage,
     detectedType,
     parseStatus,
-    listedPrice,
-    currency,
-    auctionEndAt,
+    listedPrice: safeListedPrice,
+    currency: safeCurrency,
+    auctionEndAt: safeAuctionEndAt,
     hasAuctionSignals,
     hasSoldSignals,
     recommendedDestination,
