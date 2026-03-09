@@ -3,21 +3,31 @@
 import { useState } from "react";
 import { ImportDraftCard } from "@/components/ImportDraftCard";
 
-type Draft = {
-  id: number;
+type ImportParsed = {
   sourceUrl: string;
   platform: string | null;
   rawTitle: string | null;
   rawPrice: string | null;
   rawImage: string | null;
-  detectedType: string;
-  parseStatus: string;
+  listedPrice: number | null;
+  currency: string;
+  auctionEndAt: string | null;
+  recommendedDestination: "AUCTION" | "COLLECTION";
+};
+
+type ImportResponse = {
+  draft: {
+    id: number;
+    sourceUrl: string;
+    platform: string | null;
+  };
+  parsed: ImportParsed;
 };
 
 export function ImportPageClient() {
   const [url, setUrl] = useState("");
   const [hintType, setHintType] = useState<string>("UNKNOWN");
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [result, setResult] = useState<ImportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -25,7 +35,7 @@ export function ImportPageClient() {
     event.preventDefault();
     setLoading(true);
     setMessage(null);
-    setDraft(null);
+    setResult(null);
 
     try {
       const res = await fetch("/api/import-drafts", {
@@ -36,8 +46,8 @@ export function ImportPageClient() {
           hintType: hintType === "UNKNOWN" ? undefined : hintType,
         }),
       });
-      const data = await res.json();
-      setDraft(data);
+      const data: ImportResponse = await res.json();
+      setResult(data);
     } catch (error) {
       console.error(error);
       setMessage("Import failed. Please try again.");
@@ -47,16 +57,17 @@ export function ImportPageClient() {
   };
 
   const deleteDraft = async () => {
-    if (!draft) return;
-    await fetch(`/api/import-drafts/${draft.id}`, { method: "DELETE" });
-    setDraft(null);
+    if (!result) return;
+    await fetch(`/api/import-drafts/${result.draft.id}`, { method: "DELETE" });
+    setResult(null);
   };
 
   const saveAs = async (target: "auction" | "wishlist" | "item") => {
-    if (!draft) return;
+    if (!result) return;
+    const { parsed } = result;
 
     const common = {
-      itemName: draft.rawTitle ?? "",
+      itemName: parsed.rawTitle ?? "",
     };
 
     try {
@@ -66,7 +77,10 @@ export function ImportPageClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...common,
-            platform: draft.platform ?? "",
+            platform: parsed.platform ?? "",
+            auctionUrl: parsed.sourceUrl,
+            currentPrice: parsed.listedPrice ?? null,
+            auctionEndTime: parsed.auctionEndAt,
           }),
         });
       } else if (target === "wishlist") {
@@ -75,7 +89,9 @@ export function ImportPageClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...common,
-            expectedPrice: draft.rawPrice ? Number(draft.rawPrice) : undefined,
+            expectedPrice: parsed.listedPrice ?? undefined,
+            sourcePlatform: parsed.platform ?? "",
+            sourceUrl: parsed.sourceUrl,
           }),
         });
       } else {
@@ -84,9 +100,14 @@ export function ImportPageClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...common,
-            price: draft.rawPrice ? Number(draft.rawPrice) : undefined,
-            imageUrl: draft.rawImage ?? "",
-            status: "PENDING_PAYMENT",
+            price: parsed.listedPrice ?? 0,
+            quantity: 1,
+            currency: parsed.currency || "UNKNOWN",
+            totalAmount: parsed.listedPrice ?? 0,
+            platform: parsed.platform ?? "",
+            imageUrl: parsed.rawImage ?? "",
+            status: "OWNED",
+            sourceType: parsed.recommendedDestination === "AUCTION" ? "AUCTION" : "DIRECT_PURCHASE",
           }),
         });
       }
@@ -145,15 +166,19 @@ export function ImportPageClient() {
         <div className="mb-4 text-xs text-zinc-600">{message}</div>
       )}
 
-      {draft && (
+      {result && (
         <ImportDraftCard
-          draft={draft}
-          onChange={(updates) =>
-            setDraft((prev) => (prev ? { ...prev, ...updates } : prev))
-          }
+          sourceUrl={result.parsed.sourceUrl}
+          platform={result.parsed.platform}
+          title={result.parsed.rawTitle}
+          imageUrl={result.parsed.rawImage}
+          listedPrice={result.parsed.listedPrice}
+          currency={result.parsed.currency}
+          auctionEndAt={result.parsed.auctionEndAt}
+          recommendedDestination={result.parsed.recommendedDestination}
           onSaveAsAuction={() => saveAs("auction")}
+          onSaveAsCollection={() => saveAs("item")}
           onSaveAsWishlist={() => saveAs("wishlist")}
-          onSaveAsItem={() => saveAs("item")}
         />
       )}
     </main>

@@ -1,13 +1,25 @@
 type DetectedType = 'AUCTION' | 'WISHLIST' | 'PURCHASE' | 'UNKNOWN';
 type ParseStatus = 'SUCCESS' | 'PARTIAL' | 'FAILED';
+type Destination = 'AUCTION' | 'COLLECTION';
 
 export type ImportParseResult = {
+  // basic fields
+  sourceUrl: string;
   platform: string | null;
   rawTitle: string | null;
   rawPrice: string | null;
   rawImage: string | null;
   detectedType: DetectedType;
   parseStatus: ParseStatus;
+  // structured fields
+  listedPrice: number | null;
+  currency: 'JPY' | 'USD' | 'UNKNOWN';
+  auctionEndAt: string | null; // ISO string if detected
+  // signals
+  hasAuctionSignals: boolean;
+  hasSoldSignals: boolean;
+  // recommendation
+  recommendedDestination: Destination;
 };
 
 function extractMetaContent(html: string, property: string): string | null {
@@ -55,6 +67,54 @@ function extractPrice(html: string): string | null {
   return null;
 }
 
+function normalizePrice(rawPrice: string | null): {
+  listedPrice: number | null;
+  currency: 'JPY' | 'USD' | 'UNKNOWN';
+} {
+  if (!rawPrice) {
+    return { listedPrice: null, currency: 'UNKNOWN' };
+  }
+
+  const hasYen = /¥|JPY/i.test(rawPrice);
+  const hasUsd = /\$|USD/i.test(rawPrice);
+
+  const cleaned = rawPrice.replace(/[^0-9.,]/g, '').replace(/,/g, '');
+  const numeric = cleaned ? Number(cleaned) : NaN;
+
+  return {
+    listedPrice: Number.isFinite(numeric) ? numeric : null,
+    currency: hasYen ? 'JPY' : hasUsd ? 'USD' : 'UNKNOWN',
+  };
+}
+
+function detectAuctionEnd(html: string): string | null {
+  // Very light heuristic: look for patterns like "ends on", "ends in", or "auction ends"
+  const lower = html.toLowerCase();
+  if (lower.includes('auction ends') || lower.includes('ends in') || lower.includes('ends on')) {
+    // We don't reliably parse the actual timestamp yet; just treat this as a signal.
+    return new Date().toISOString();
+  }
+  return null;
+}
+
+function detectAuctionSignals(html: string, auctionEndAt: string | null): boolean {
+  const lower = html.toLowerCase();
+  if (auctionEndAt) return true;
+  if (lower.includes('bid') || lower.includes('bids') || lower.includes('current bid')) return true;
+  if (lower.includes('auction')) return true;
+  if (lower.includes('time left')) return true;
+  return false;
+}
+
+function detectSoldSignals(html: string): boolean {
+  const lower = html.toLowerCase();
+  if (lower.includes('sold')) return true;
+  if (lower.includes('purchased') || lower.includes('purchase complete')) return true;
+  if (lower.includes('order confirmed') || lower.includes('order completed')) return true;
+  if (lower.includes('won auction') || lower.includes('you won')) return true;
+  return false;
+}
+
 function detectTypeFromHint(hintType?: string | null): DetectedType {
   if (!hintType) return 'UNKNOWN';
   const upper = hintType.toUpperCase();
@@ -84,16 +144,37 @@ export function parseImport(params: {
   const rawPrice = extractPrice(html);
   const detectedType = detectTypeFromHint(hintType);
 
+  const { listedPrice, currency } = normalizePrice(rawPrice);
+  const auctionEndAt = detectAuctionEnd(html);
+  const hasAuctionSignals = detectAuctionSignals(html, auctionEndAt);
+  const hasSoldSignals = detectSoldSignals(html);
+
+  let recommendedDestination: Destination;
+  if (hasAuctionSignals) {
+    recommendedDestination = 'AUCTION';
+  } else if (hasSoldSignals) {
+    recommendedDestination = 'COLLECTION';
+  } else {
+    recommendedDestination = 'COLLECTION';
+  }
+
   const hasAnyField = !!(rawTitle || rawImage || rawPrice);
   const parseStatus: ParseStatus = hasAnyField ? 'PARTIAL' : 'FAILED';
 
   return {
+    sourceUrl,
     platform,
     rawTitle,
     rawPrice,
     rawImage,
     detectedType,
     parseStatus,
+    listedPrice,
+    currency,
+    auctionEndAt,
+    hasAuctionSignals,
+    hasSoldSignals,
+    recommendedDestination,
   };
 }
 

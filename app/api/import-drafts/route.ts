@@ -44,21 +44,27 @@ export async function POST(request: Request) {
     return NextResponse.json(draft, { status: 201 });
   }
 
-  const result = parseImport({ sourceUrl, html, hintType });
+  const parsed = parseImport({ sourceUrl, html, hintType });
 
   const draft = await prisma.importDraft.create({
     data: {
       sourceUrl,
-      platform: result.platform,
-      rawTitle: result.rawTitle,
-      rawPrice: result.rawPrice,
-      rawImage: result.rawImage,
-      detectedType: result.detectedType,
-      parseStatus: result.parseStatus,
+      platform: parsed.platform,
+      rawTitle: parsed.rawTitle,
+      rawPrice: parsed.rawPrice,
+      rawImage: parsed.rawImage,
+      detectedType: parsed.detectedType,
+      parseStatus: parsed.parseStatus,
       rawPayload: undefined,
     },
   });
 
-  return NextResponse.json(draft, { status: 201 });
+  return NextResponse.json(
+    {
+      draft,
+      parsed,
+    },
+    { status: 201 }
+  );
 }
 

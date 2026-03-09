@@ -1,104 +1,87 @@
 "use client";
 
 type ImportDraftCardProps = {
-  draft: {
-    id: number;
-    sourceUrl: string;
-    platform: string | null;
-    rawTitle: string | null;
-    rawPrice: string | null;
-    rawImage: string | null;
-    detectedType: string;
-    parseStatus: string;
-  };
-  onChange: (updates: {
-    rawTitle?: string;
-    rawPrice?: string;
-    rawImage?: string;
-    detectedType?: string;
-  }) => void;
+  sourceUrl: string;
+  platform: string | null;
+  title: string | null;
+  imageUrl: string | null;
+  listedPrice: number | null;
+  currency: string;
+  auctionEndAt: string | null;
+  recommendedDestination: "AUCTION" | "COLLECTION";
   onSaveAsAuction: () => void;
   onSaveAsWishlist: () => void;
-  onSaveAsItem: () => void;
+  onSaveAsCollection: () => void;
 };
 
 export function ImportDraftCard({
-  draft,
-  onChange,
+  sourceUrl,
+  platform,
+  title,
+  imageUrl,
+  listedPrice,
+  currency,
+  auctionEndAt,
+  recommendedDestination,
   onSaveAsAuction,
   onSaveAsWishlist,
-  onSaveAsItem,
+  onSaveAsCollection,
 }: ImportDraftCardProps) {
   return (
     <div className="space-y-3 rounded border bg-white p-4 text-sm shadow-sm">
       <div className="space-y-1">
         <div className="text-xs font-medium text-zinc-500">Source URL</div>
         <a
-          href={draft.sourceUrl}
+          href={sourceUrl}
           target="_blank"
           rel="noreferrer"
           className="break-all text-blue-600 underline"
         >
-          {draft.sourceUrl}
+          {sourceUrl}
         </a>
-        {draft.platform && (
-          <div className="text-xs text-zinc-500">Platform: {draft.platform}</div>
+        {platform && (
+          <div className="text-xs text-zinc-500">Platform: {platform}</div>
         )}
-        <div className="text-xs text-zinc-500">
-          Parse status: {draft.parseStatus}
-        </div>
       </div>
 
       <div className="space-y-2">
         <div>
           <label className="block text-xs font-medium">Title</label>
-          <input
-            type="text"
-            value={draft.rawTitle ?? ''}
-            onChange={(e) => onChange({ rawTitle: e.target.value })}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          />
+          <div className="mt-1 rounded border px-2 py-1 text-sm">
+            {title ?? "(Untitled)"}
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium">Price</label>
-          <input
-            type="text"
-            value={draft.rawPrice ?? ''}
-            onChange={(e) => onChange({ rawPrice: e.target.value })}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          />
+          <div className="mt-1 rounded border px-2 py-1 text-sm">
+            {listedPrice !== null
+              ? `${listedPrice.toLocaleString()} ${currency}`
+              : "Not detected"}
+          </div>
         </div>
         <div>
-          <label className="block text-xs font-medium">Image URL</label>
-          <input
-            type="text"
-            value={draft.rawImage ?? ''}
-            onChange={(e) => onChange({ rawImage: e.target.value })}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          />
+          <label className="block text-xs font-medium">Auction end time</label>
+          <div className="mt-1 rounded border px-2 py-1 text-sm">
+            {auctionEndAt
+              ? new Date(auctionEndAt).toLocaleString()
+              : "Not detected"}
+          </div>
         </div>
         <div>
-          <label className="block text-xs font-medium">Detected type</label>
-          <select
-            value={draft.detectedType}
-            onChange={(e) => onChange({ detectedType: e.target.value })}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          >
-            <option value="UNKNOWN">Unknown</option>
-            <option value="AUCTION">Auction</option>
-            <option value="WISHLIST">Wishlist</option>
-            <option value="PURCHASE">Purchase</option>
-          </select>
+          <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
+            Recommended:{" "}
+            {recommendedDestination === "AUCTION" ? "Auction" : "Collection"}
+          </span>
         </div>
       </div>
 
-      {draft.rawImage && (
+      {imageUrl && (
         <div>
           <div className="text-xs font-medium text-zinc-500">Preview</div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={draft.rawImage}
-            alt={draft.rawTitle ?? 'Imported image'}
+            src={imageUrl}
+            alt={title ?? "Imported image"}
             className="mt-1 max-h-40 w-auto rounded border object-contain"
           />
         </div>
@@ -114,17 +97,17 @@ export function ImportDraftCard({
         </button>
         <button
           type="button"
-          onClick={onSaveAsWishlist}
+          onClick={onSaveAsCollection}
           className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
         >
-          Save as Wishlist
+          Save to Collection
         </button>
         <button
           type="button"
-          onClick={onSaveAsItem}
+          onClick={onSaveAsWishlist}
           className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
         >
-          Save as Item
+          Save to Wishlist
         </button>
       </div>
     </div>
