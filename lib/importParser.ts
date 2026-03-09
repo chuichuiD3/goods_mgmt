@@ -87,24 +87,204 @@ function normalizePrice(rawPrice: string | null): {
   };
 }
 
-function detectAuctionEnd(html: string): string | null {
-  // Very light heuristic: look for patterns like "ends on", "ends in", or "auction ends"
+function parseJapaneseDateTime(
+  yearStr: string,
+  monthStr: string,
+  dayStr: string,
+  hourStr: string,
+  minuteStr: string
+): string | null {
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+
+  if ([year, month, day, hour, minute].some((n) => Number.isNaN(n))) {
+    return null;
+  }
+
+  // Interpret as local time (likely JST on Neon side); ISO is fine for our use.
+  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+function detectYahooAuctionEnd(html: string): string | null {
+  // Primary source: 終了日時
+  const primaryPattern =
+    /終了日時[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})時(\d{1,2})分/;
+  const primaryMatch = html.match(primaryPattern);
+  if (primaryMatch) {
+    const iso = parseJapaneseDateTime(
+      primaryMatch[1],
+      primaryMatch[2],
+      primaryMatch[3],
+      primaryMatch[4],
+      primaryMatch[5]
+    );
+    if (iso) {
+      console.log('detectYahooAuctionEnd: parsed 終了日時', primaryMatch[0], '->', iso);
+      return iso;
+    }
+    console.log(
+      'detectYahooAuctionEnd: found 終了日時 but failed to parse',
+      primaryMatch[0]
+    );
+  }
+
+  // Fallback: 終了予定
+  const fallbackPattern =
+    /終了予定[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})時(\d{1,2})分/;
+  const fallbackMatch = html.match(fallbackPattern);
+  if (fallbackMatch) {
+    const iso = parseJapaneseDateTime(
+      fallbackMatch[1],
+      fallbackMatch[2],
+      fallbackMatch[3],
+      fallbackMatch[4],
+      fallbackMatch[5]
+    );
+    if (iso) {
+      console.log('detectYahooAuctionEnd: parsed 終了予定', fallbackMatch[0], '->', iso);
+      return iso;
+    }
+    console.log(
+      'detectYahooAuctionEnd: found 終了予定 but failed to parse',
+      fallbackMatch[0]
+    );
+  }
+
+  console.log('detectYahooAuctionEnd: 終了日時/終了予定 not found');
+  return null;
+}
+
+function detectMercariAuctionEnd(html: string): string | null {
+  // Mercari examples (approximate):
+  // "終了予定時刻 2026年3月13日（金）23:49"
+  const primaryPattern =
+    /終了予定時刻[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
+  const primaryMatch = html.match(primaryPattern);
+  if (primaryMatch) {
+    const iso = parseJapaneseDateTime(
+      primaryMatch[1],
+      primaryMatch[2],
+      primaryMatch[3],
+      primaryMatch[4],
+      primaryMatch[5]
+    );
+    if (iso) {
+      console.log('detectMercariAuctionEnd: parsed 終了予定時刻', primaryMatch[0], '->', iso);
+      return iso;
+    }
+    console.log(
+      'detectMercariAuctionEnd: found 終了予定時刻 but failed to parse',
+      primaryMatch[0]
+    );
+  }
+
+  // Fallback: any Japanese "終了" label with datetime-like pattern
+  const fallbackPattern =
+    /終了[^0-9]*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
+  const fallbackMatch = html.match(fallbackPattern);
+  if (fallbackMatch) {
+    const iso = parseJapaneseDateTime(
+      fallbackMatch[1],
+      fallbackMatch[2],
+      fallbackMatch[3],
+      fallbackMatch[4],
+      fallbackMatch[5]
+    );
+    if (iso) {
+      console.log('detectMercariAuctionEnd: parsed fallback 終了', fallbackMatch[0], '->', iso);
+      return iso;
+    }
+    console.log(
+      'detectMercariAuctionEnd: found fallback 終了 but failed to parse',
+      fallbackMatch[0]
+    );
+  }
+
+  console.log('detectMercariAuctionEnd: no 終了-related datetime found');
+  return null;
+}
+
+function detectAuctionEnd(sourceUrl: string, html: string): string | null {
+  const host = (() => {
+    try {
+      return new URL(sourceUrl).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+
+  if (host.includes('auctions.yahoo.co.jp')) {
+    const yahoo = detectYahooAuctionEnd(html);
+    if (yahoo) return yahoo;
+  } else if (host.includes('mercari')) {
+    const mercari = detectMercariAuctionEnd(html);
+    if (mercari) return mercari;
+  }
+
+  // Generic heuristic fallback (English sites)
   const lower = html.toLowerCase();
   if (lower.includes('auction ends') || lower.includes('ends in') || lower.includes('ends on')) {
-    // We don't reliably parse the actual timestamp yet; just treat this as a signal.
     return new Date().toISOString();
   }
   return null;
 }
 
-function detectAuctionSignals(html: string, auctionEndAt: string | null): boolean {
-  const lower = html.toLowerCase();
+function detectAuctionLike(sourceUrl: string, html: string, auctionEndAt: string | null): boolean {
+  const host = (() => {
+    try {
+      return new URL(sourceUrl).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+  const text = html;
+  const lower = text.toLowerCase();
+
+  // If we already parsed an end time, it's clearly an auction
   if (auctionEndAt) return true;
-  if (lower.includes('bid') || lower.includes('bids') || lower.includes('current bid')) return true;
-  if (lower.includes('auction')) return true;
-  if (lower.includes('time left')) return true;
+
+  // Yahoo Auctions: look for Japanese auction-related labels
+  if (host.includes('auctions.yahoo.co.jp')) {
+    if (
+      text.includes('オークションID') ||
+      text.includes('終了日時') ||
+      text.includes('終了予定') ||
+      text.includes('開始日時')
+    ) {
+      return true;
+    }
+  }
+
+  // Mercari auction-like listings: Japanese labels
+  if (host.includes('mercari')) {
+    if (
+      text.includes('オークション商品') ||
+      text.includes('入札する') ||
+      text.includes('入札')
+    ) {
+      return true;
+    }
+  }
+
+  // Generic English auction signals as fallback
+  if (
+    lower.includes('bid') ||
+    lower.includes('bids') ||
+    lower.includes('current bid') ||
+    lower.includes('time left') ||
+    lower.includes('auction')
+  ) {
+    return true;
+  }
+
   return false;
 }
+
+// detectSoldSignals remains unchanged
 
 function detectSoldSignals(html: string): boolean {
   const lower = html.toLowerCase();
@@ -145,8 +325,8 @@ export function parseImport(params: {
   const detectedType = detectTypeFromHint(hintType);
 
   const { listedPrice, currency } = normalizePrice(rawPrice);
-  const auctionEndAt = detectAuctionEnd(html);
-  const hasAuctionSignals = detectAuctionSignals(html, auctionEndAt);
+  const auctionEndAt = detectAuctionEnd(sourceUrl, html);
+  const hasAuctionSignals = detectAuctionLike(sourceUrl, html, auctionEndAt);
   const hasSoldSignals = detectSoldSignals(html);
 
   let recommendedDestination: Destination;
