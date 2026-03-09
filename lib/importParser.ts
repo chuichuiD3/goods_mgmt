@@ -169,11 +169,14 @@ function detectMercariAuctionEnd(html: string): string | null {
   const text = stripHtmlTags(html);
 
   // Mercari examples:
-  // "終了予定時刻 2026年3月13日（金）23:49"
-  // or without year: "終了予定時刻 3月10日 19:28"
+  // "終了予定時刻 : 2026年3月10日 19:28"
+  // or "終了予定時刻 : 3月10日 19:28"
+  const labelIndex = text.indexOf('終了予定時刻');
+  const searchArea = labelIndex >= 0 ? text.slice(labelIndex) : text;
+
   const primaryPattern =
-    /終了予定時刻[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
-  const primaryMatch = text.match(primaryPattern);
+    /((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]{0,10}(\d{1,2})[:時](\d{1,2})/;
+  const primaryMatch = searchArea.match(primaryPattern);
   if (primaryMatch) {
     const year = primaryMatch[2] ?? String(new Date().getFullYear());
     const month = primaryMatch[3];
@@ -194,7 +197,7 @@ function detectMercariAuctionEnd(html: string): string | null {
 
   // Fallback: any Japanese "終了" label with datetime-like pattern
   const fallbackPattern =
-    /終了[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]*?(\d{1,2})[:時](\d{1,2})/;
+    /終了[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]{0,10}(\d{1,2})[:時](\d{1,2})/;
   const fallbackMatch = text.match(fallbackPattern);
   if (fallbackMatch) {
     const year = fallbackMatch[2] ?? String(new Date().getFullYear());
