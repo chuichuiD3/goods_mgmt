@@ -180,59 +180,49 @@ function detectYahooAuctionEnd(html: string): string | null {
 }
 
 function detectMercariAuctionEnd(html: string): string | null {
+  // 1) Normalize to plain, half‑width text
   const text = toHalfWidth(stripHtmlTags(html));
 
-  // Mercari examples:
-  // "終了予定時刻 : 2026年3月10日 19:28"
-  // or "終了予定時刻 : 3月10日 19:28"
-  const labelIndex = text.indexOf('終了予定時刻');
-  const searchArea = labelIndex >= 0 ? text.slice(labelIndex) : text;
-
-  const primaryPattern =
-    /((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]{0,10}(\d{1,2})[:時](\d{1,2})/;
-  const primaryMatch = searchArea.match(primaryPattern);
-  if (primaryMatch) {
-    const year = primaryMatch[2] ?? String(new Date().getFullYear());
-    const month = primaryMatch[3];
-    const day = primaryMatch[4];
-    const hour = primaryMatch[5];
-    const minute = primaryMatch[6];
-
-    const iso = parseJapaneseDateTime(year, month, day, hour, minute);
-    if (iso) {
-      console.log('detectMercariAuctionEnd: parsed 終了予定時刻', primaryMatch[0], '->', iso);
-      return iso;
-    }
-    console.log(
-      'detectMercariAuctionEnd: found 終了予定時刻 but failed to parse',
-      primaryMatch[0]
-    );
+  // 2) Find the primary label
+  const label = '終了予定時刻';
+  const labelIndex = text.indexOf(label);
+  if (labelIndex === -1) {
+    console.log('detectMercariAuctionEnd: label 終了予定時刻 not found');
+    return null;
   }
 
-  // Fallback: any Japanese "終了" label with datetime-like pattern
-  const fallbackPattern =
-    /終了[^0-9]*?((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日[^0-9]{0,10}(\d{1,2})[:時](\d{1,2})/;
-  const fallbackMatch = text.match(fallbackPattern);
-  if (fallbackMatch) {
-    const year = fallbackMatch[2] ?? String(new Date().getFullYear());
-    const month = fallbackMatch[3];
-    const day = fallbackMatch[4];
-    const hour = fallbackMatch[5];
-    const minute = fallbackMatch[6];
+  // 3) Take a window of text after the label (tolerant of spaces/newlines)
+  const windowSize = 120;
+  const start = labelIndex;
+  const end = Math.min(text.length, labelIndex + label.length + windowSize);
+  const snippet = text.slice(start, end);
 
-    const iso = parseJapaneseDateTime(year, month, day, hour, minute);
-    if (iso) {
-      console.log('detectMercariAuctionEnd: parsed fallback 終了', fallbackMatch[0], '->', iso);
-      return iso;
-    }
-    console.log(
-      'detectMercariAuctionEnd: found fallback 終了 but failed to parse',
-      fallbackMatch[0]
-    );
+  console.log('detectMercariAuctionEnd: snippet around label =', JSON.stringify(snippet));
+
+  // 4) Match datetime within the snippet: "2026年3月10日 11:17" or "3月10日 11:17"
+  const dtPattern =
+    /((\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日\s*(\d{1,2})[:時](\d{1,2})/;
+  const m = snippet.match(dtPattern);
+
+  if (!m) {
+    console.log('detectMercariAuctionEnd: found label but no adjacent datetime');
+    return null;
   }
 
-  console.log('detectMercariAuctionEnd: no 終了-related datetime found');
-  return null;
+  const year = m[2] ?? String(new Date().getFullYear());
+  const month = m[3];
+  const day = m[4];
+  const hour = m[5];
+  const minute = m[6];
+
+  const iso = parseJapaneseDateTime(year, month, day, hour, minute);
+  if (!iso) {
+    console.log('detectMercariAuctionEnd: found datetime but parse failed', m[0]);
+    return null;
+  }
+
+  console.log('detectMercariAuctionEnd: parsed 終了予定時刻', m[0], '->', iso);
+  return iso;
 }
 
 function detectAuctionEnd(sourceUrl: string, html: string): string | null {
