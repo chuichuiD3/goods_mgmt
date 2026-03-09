@@ -27,6 +27,20 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, ' ');
 }
 
+function toHalfWidth(input: string): string {
+  // Convert full-width digits and colon to ASCII, keep other chars
+  return input.replace(/[０-９：]/g, (ch) => {
+    const code = ch.charCodeAt(0);
+    // full-width ０-９
+    if (code >= 0xff10 && code <= 0xff19) {
+      return String.fromCharCode(code - 0xff10 + 0x30);
+    }
+    // full-width colon
+    if (ch === '：') return ':';
+    return ch;
+  });
+}
+
 function extractMetaContent(html: string, property: string): string | null {
   const regex = new RegExp(
     `<meta[^>]+property=["']${property}["'][^>]*content=["']([^"']+)["'][^>]*>`,
@@ -166,7 +180,7 @@ function detectYahooAuctionEnd(html: string): string | null {
 }
 
 function detectMercariAuctionEnd(html: string): string | null {
-  const text = stripHtmlTags(html);
+  const text = toHalfWidth(stripHtmlTags(html));
 
   // Mercari examples:
   // "終了予定時刻 : 2026年3月10日 19:28"
