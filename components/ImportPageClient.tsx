@@ -94,6 +94,7 @@ export function ImportPageClient() {
             auctionUrl: parsed.sourceUrl,
             currentPrice: parsed.listedPrice ?? null,
             auctionEndTime: parsed.auctionEndAt,
+            imageUrl: importImage ?? parsed.rawImage ?? null,
           }),
         });
       } else if (target === "wishlist") {
@@ -105,6 +106,7 @@ export function ImportPageClient() {
             expectedPrice: parsed.listedPrice ?? undefined,
             sourcePlatform: parsed.platform ?? "",
             sourceUrl: parsed.sourceUrl,
+            imageUrl: importImage ?? parsed.rawImage ?? null,
           }),
         });
       } else {
@@ -118,7 +120,7 @@ export function ImportPageClient() {
             currency: parsed.currency || "UNKNOWN",
             totalAmount: parsed.listedPrice ?? 0,
             platform: parsed.platform ?? "",
-            imageUrl: parsed.rawImage ?? "",
+            imageUrl: importImage ?? parsed.rawImage ?? "",
             status: "OWNED",
             sourceType: parsed.recommendedDestination === "AUCTION" ? "AUCTION" : "DIRECT_PURCHASE",
           }),
