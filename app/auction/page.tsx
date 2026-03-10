@@ -176,98 +176,101 @@ export default function AuctionPage() {
         ) : auctions.length === 0 ? (
           <div className="text-xs text-zinc-500">No auctions yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead className="bg-zinc-100 text-xs">
-                <tr>
-                  <th className="border px-2 py-1 text-left">Image</th>
-                  <th className="border px-2 py-1 text-left">Title</th>
-                  <th className="border px-2 py-1 text-left">Platform</th>
-                  <th className="border px-2 py-1 text-left">Source URL</th>
-                  <th className="border px-2 py-1 text-left">Price</th>
-                  <th className="border px-2 py-1 text-left">End time</th>
-                  <th className="border px-2 py-1 text-left">Countdown</th>
-                  <th className="border px-2 py-1 text-left">Status</th>
-                  <th className="border px-2 py-1 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auctions.map((auction) => (
-                  <tr key={auction.id}>
-                    <td className="border px-2 py-1 align-top">
-                      {auction.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={auction.imageUrl}
-                          alt={auction.itemName}
-                          className="h-12 w-12 rounded border object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded border text-[10px] text-zinc-400">
-                          No image
-                        </div>
-                      )}
-                    </td>
-                    <td className="border px-2 py-1 align-top">
-                      <div className="max-w-[180px] break-words">
-                        {auction.itemName}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {auctions.map((auction) => (
+              <div
+                key={auction.id}
+                className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
+              >
+                <div className="relative h-40 w-full bg-zinc-100">
+                  {auction.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={auction.imageUrl}
+                      alt={auction.itemName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      {auction.platform ?? "Unknown platform"}
+                    </div>
+                    <div className="mt-0.5 line-clamp-2 text-sm font-semibold text-zinc-900">
+                      {auction.itemName}
+                    </div>
+                    {auction.auctionUrl ? (
+                      <a
+                        href={auction.auctionUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block break-all text-[11px] text-blue-600 underline"
+                      >
+                        {auction.auctionUrl}
+                      </a>
+                    ) : (
+                      <div className="mt-1 text-[11px] text-zinc-500">
+                        No source URL
                       </div>
-                    </td>
-                    <td className="border px-2 py-1">
-                      {auction.platform ?? "-"}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {auction.auctionUrl ? (
-                        <a
-                          href={auction.auctionUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="break-all text-xs text-blue-600 underline"
-                        >
-                          {auction.auctionUrl}
-                        </a>
-                      ) : (
-                        <span className="text-xs text-zinc-500">–</span>
-                      )}
-                    </td>
-                    <td className="border px-2 py-1">
+                    )}
+                  </div>
+
+                  <div className="mt-1 flex items-baseline justify-between gap-2">
+                    <div className="text-xs text-zinc-500">Current price</div>
+                    <div className="text-sm font-semibold text-zinc-900">
                       {auction.currentPrice !== null
                         ? auction.currentPrice.toLocaleString()
-                        : "-"}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {formatBeijing(auction.auctionEndTime)}
-                    </td>
-                    <td className="border px-2 py-1">
+                        : "—"}
+                    </div>
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between gap-2 rounded-md bg-zinc-50 px-2 py-1.5">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] uppercase tracking-wide text-zinc-500">
+                        Ends (Beijing)
+                      </span>
+                      <span className="text-xs text-zinc-900">
+                        {formatBeijing(auction.auctionEndTime)}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-white">
                       {formatCountdown(auction.auctionEndTime)}
-                    </td>
-                    <td className="border px-2 py-1">{auction.status}</td>
-                    <td className="border px-2 py-1">
-                      <div className="flex flex-wrap gap-1 text-xs">
-                        <button
-                          onClick={() => setEditingAuction(auction)}
-                          className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(auction.id)}
-                          className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                        >
-                          Delete
-                        </button>
-                        <button
-                          onClick={() => handleConvertToItem(auction)}
-                          className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                        >
-                          Mark as won → Item
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                      {auction.status}
+                    </span>
+                    <div className="flex flex-wrap gap-1 text-[11px]">
+                      <button
+                        onClick={() => setEditingAuction(auction)}
+                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(auction.id)}
+                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => handleConvertToItem(auction)}
+                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                      >
+                        Mark as won → Item
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
