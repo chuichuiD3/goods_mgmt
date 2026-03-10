@@ -341,20 +341,6 @@ export function ImportPageClient() {
                   </div>
                 </div>
 
-                {manualDestination === "auction" && (
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium">
-                      Auction end time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={manualAuctionEnd}
-                      onChange={(e) => setManualAuctionEnd(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                    />
-                  </div>
-                )}
-
                 <div className="space-y-1">
                   <label className="block text-sm font-medium">Image</label>
                   <input
