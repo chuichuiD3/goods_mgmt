@@ -9,10 +9,6 @@ const ImportPageClient = dynamic(
 );
 
 export default function ImportPage() {
-  return (
-    <div className="min-h-screen bg-zinc-50">
-      <ImportPageClient />
-    </div>
-  );
+  return <ImportPageClient />;
 }
 

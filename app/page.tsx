@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
 export default async function Home() {
@@ -31,28 +30,7 @@ export default async function Home() {
   const pendingTotal = totalPending._sum.totalAmount ?? 0;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold">Goods management</h1>
-          <nav className="flex gap-4 text-sm">
-            <Link href="/auction" className="hover:underline">
-              Auctions
-            </Link>
-            <Link href="/collection" className="hover:underline">
-              Collection
-            </Link>
-            <Link href="/wishlist" className="hover:underline">
-              Wishlist
-            </Link>
-            <Link href="/import" className="hover:underline">
-              Import
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded border bg-white p-4">
             <div className="text-xs font-medium text-zinc-500">Owned items</div>
@@ -136,7 +114,6 @@ export default async function Home() {
             </div>
           </div>
         </section>
-      </main>
     </div>
   );
 }

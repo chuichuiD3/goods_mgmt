@@ -83,8 +83,7 @@ export default function AuctionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <main className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold">Auctions</h1>
           <button
@@ -204,7 +203,6 @@ export default function AuctionPage() {
             </div>
           )}
         </div>
-      </main>
     </div>
   );
 }
