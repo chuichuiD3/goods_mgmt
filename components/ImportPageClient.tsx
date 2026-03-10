@@ -38,7 +38,6 @@ export function ImportPageClient() {
   const [manualPlatform, setManualPlatform] = useState("");
   const [manualSourceUrl, setManualSourceUrl] = useState("");
   const [manualPrice, setManualPrice] = useState<string>("");
-  const [manualAuctionEnd, setManualAuctionEnd] = useState<string>("");
   const [manualImage, setManualImage] = useState<string | null>(null);
 
   // Canonical auction draft used by URL-parsed flow (and aligned to manual core fields)

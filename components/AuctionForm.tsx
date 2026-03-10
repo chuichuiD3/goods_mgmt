@@ -1,5 +1,48 @@
 import { useEffect, useState, FormEvent } from 'react';
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+const parseIsoToLocalParts = (iso: string | undefined): {
+  date: string;
+  hour: string;
+  minute: string;
+} => {
+  if (!iso) return { date: '', hour: '', minute: '' };
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { date: '', hour: '', minute: '' };
+  return {
+    date: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+    hour: pad2(d.getHours()),
+    minute: pad2(d.getMinutes()),
+  };
+};
+
+const buildIsoFromLocalParts = (
+  dateStr: string,
+  hourStr: string,
+  minuteStr: string
+): string | undefined => {
+  if (!dateStr || hourStr === '' || minuteStr === '') return undefined;
+  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
+    return undefined;
+  }
+  const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+};
+
 export type AuctionFormValues = {
   itemName: string;
   series?: string;
@@ -65,56 +108,14 @@ export function AuctionForm({
     reader.readAsDataURL(file);
   };
 
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  const parseLocalParts = (iso: string | undefined): {
-    date: string;
-    hour: string;
-    minute: string;
-  } => {
-    if (!iso) return { date: '', hour: '', minute: '' };
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return { date: '', hour: '', minute: '' };
-    return {
-      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-      hour: pad(d.getHours()),
-      minute: pad(d.getMinutes()),
-    };
-  };
-
-  const buildIsoFromParts = (
-    dateStr: string,
-    hourStr: string,
-    minuteStr: string
-  ): string | undefined => {
-    if (!dateStr || hourStr === '' || minuteStr === '') return undefined;
-    const [yearStr, monthStr, dayStr] = dateStr.split('-');
-    const year = Number(yearStr);
-    const month = Number(monthStr);
-    const day = Number(dayStr);
-    const hour = Number(hourStr);
-    const minute = Number(minuteStr);
-    if (
-      !Number.isFinite(year) ||
-      !Number.isFinite(month) ||
-      !Number.isFinite(day) ||
-      !Number.isFinite(hour) ||
-      !Number.isFinite(minute)
-    ) {
-      return undefined;
-    }
-    const d = new Date(year, month - 1, day, hour, minute, 0, 0);
-    if (Number.isNaN(d.getTime())) return undefined;
-    return d.toISOString();
-  };
-
   const [{ date, hour, minute }, setLocalParts] = useState(() =>
-    parseLocalParts(initialValues?.auctionEndTime)
+    parseIsoToLocalParts(initialValues?.auctionEndTime)
   );
 
   useEffect(() => {
     if (initialValues?.auctionEndTime) {
-      setLocalParts(parseLocalParts(initialValues.auctionEndTime));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocalParts(parseIsoToLocalParts(initialValues.auctionEndTime));
     }
   }, [initialValues?.auctionEndTime]);
 
@@ -248,7 +249,7 @@ export function AuctionForm({
               onChange={(e) =>
                 setLocalParts((prev) => {
                   const next = { ...prev, date: e.target.value };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute
@@ -268,10 +269,10 @@ export function AuctionForm({
                 const v = e.target.value;
                 const n = Number(v);
                 const safe =
-                  !Number.isFinite(n) || n < 0 || n > 23 ? '' : pad(n);
+                  !Number.isFinite(n) || n < 0 || n > 23 ? '' : pad2(n);
                 setLocalParts((prev) => {
                   const next = { ...prev, hour: safe };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute
@@ -292,10 +293,10 @@ export function AuctionForm({
                 const v = e.target.value;
                 const n = Number(v);
                 const safe =
-                  !Number.isFinite(n) || n < 0 || n > 59 ? '' : pad(n);
+                  !Number.isFinite(n) || n < 0 || n > 59 ? '' : pad2(n);
                 setLocalParts((prev) => {
                   const next = { ...prev, minute: safe };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute

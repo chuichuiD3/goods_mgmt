@@ -2,6 +2,49 @@
 
 import { useEffect, useState } from "react";
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+const parseIsoToLocalParts = (iso: string | null): {
+  date: string;
+  hour: string;
+  minute: string;
+} => {
+  if (!iso) return { date: "", hour: "", minute: "" };
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { date: "", hour: "", minute: "" };
+  return {
+    date: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+    hour: pad2(d.getHours()),
+    minute: pad2(d.getMinutes()),
+  };
+};
+
+const buildIsoFromLocalParts = (
+  dateStr: string,
+  hourStr: string,
+  minuteStr: string
+): string | null => {
+  if (!dateStr || hourStr === "" || minuteStr === "") return null;
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
+    return null;
+  }
+  const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+};
+
 type ImportDraftCardProps = {
   sourceUrl: string;
   platform: string | null;
@@ -54,49 +97,6 @@ export function ImportDraftCard({
     }).format(date);
   };
 
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  const parseLocalParts = (iso: string | null): {
-    date: string;
-    hour: string;
-    minute: string;
-  } => {
-    if (!iso) return { date: "", hour: "", minute: "" };
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return { date: "", hour: "", minute: "" };
-    return {
-      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-      hour: pad(d.getHours()),
-      minute: pad(d.getMinutes()),
-    };
-  };
-
-  const buildIsoFromParts = (
-    dateStr: string,
-    hourStr: string,
-    minuteStr: string
-  ): string | null => {
-    if (!dateStr || hourStr === "" || minuteStr === "") return null;
-    const [yearStr, monthStr, dayStr] = dateStr.split("-");
-    const year = Number(yearStr);
-    const month = Number(monthStr);
-    const day = Number(dayStr);
-    const hour = Number(hourStr);
-    const minute = Number(minuteStr);
-    if (
-      !Number.isFinite(year) ||
-      !Number.isFinite(month) ||
-      !Number.isFinite(day) ||
-      !Number.isFinite(hour) ||
-      !Number.isFinite(minute)
-    ) {
-      return null;
-    }
-    const d = new Date(year, month - 1, day, hour, minute, 0, 0);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toISOString();
-  };
-
   const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -113,11 +113,11 @@ export function ImportDraftCard({
   };
 
   const [{ date, hour, minute }, setLocalParts] = useState(() =>
-    parseLocalParts(auctionEndAt)
+    parseIsoToLocalParts(auctionEndAt)
   );
 
   useEffect(() => {
-    setLocalParts(parseLocalParts(auctionEndAt));
+    setLocalParts(parseIsoToLocalParts(auctionEndAt));
   }, [auctionEndAt]);
 
   return (
@@ -187,12 +187,12 @@ export function ImportDraftCard({
               onChange={(e) =>
                 setLocalParts((prev) => {
                   const next = { ...prev, date: e.target.value };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute
                   );
-                  onChangeAuctionEndAt(iso);
+                  onChangeAuctionEndAt(iso ?? "");
                   return next;
                 })
               }
@@ -207,15 +207,15 @@ export function ImportDraftCard({
                 const v = e.target.value;
                 const n = Number(v);
                 const safe =
-                  !Number.isFinite(n) || n < 0 || n > 23 ? "" : pad(n);
+                  !Number.isFinite(n) || n < 0 || n > 23 ? "" : pad2(n);
                 setLocalParts((prev) => {
                   const next = { ...prev, hour: safe };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute
                   );
-                  onChangeAuctionEndAt(iso);
+                  onChangeAuctionEndAt(iso ?? "");
                   return next;
                 });
               }}
@@ -231,15 +231,15 @@ export function ImportDraftCard({
                 const v = e.target.value;
                 const n = Number(v);
                 const safe =
-                  !Number.isFinite(n) || n < 0 || n > 59 ? "" : pad(n);
+                  !Number.isFinite(n) || n < 0 || n > 59 ? "" : pad2(n);
                 setLocalParts((prev) => {
                   const next = { ...prev, minute: safe };
-                  const iso = buildIsoFromParts(
+                  const iso = buildIsoFromLocalParts(
                     next.date,
                     next.hour,
                     next.minute
                   );
-                  onChangeAuctionEndAt(iso);
+                  onChangeAuctionEndAt(iso ?? "");
                   return next;
                 });
               }}
