@@ -177,7 +177,25 @@ export default function AuctionPage() {
           <div className="text-xs text-zinc-500">No auctions yet.</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {auctions.map((auction) => (
+            {[...auctions]
+              .sort((a, b) => {
+                const aTime = a.auctionEndTime
+                  ? new Date(a.auctionEndTime).getTime()
+                  : Number.POSITIVE_INFINITY;
+                const bTime = b.auctionEndTime
+                  ? new Date(b.auctionEndTime).getTime()
+                  : Number.POSITIVE_INFINITY;
+                return aTime - bTime;
+              })
+              .map((auction) => {
+                const diffMs =
+                  auction.auctionEndTime != null
+                    ? new Date(auction.auctionEndTime).getTime() -
+                      now.getTime()
+                    : null;
+                const isSoon =
+                  diffMs != null && diffMs > 0 && diffMs <= 5 * 60 * 60 * 1000;
+                return (
               <div
                 key={auction.id}
                 className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
@@ -238,7 +256,13 @@ export default function AuctionPage() {
                         {formatBeijing(auction.auctionEndTime)}
                       </span>
                     </div>
-                    <span className="inline-flex items-center rounded-full bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-white">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        isSoon
+                          ? "bg-red-600 text-white"
+                          : "bg-zinc-900 text-white"
+                      }`}
+                    >
                       {formatCountdown(auction.auctionEndTime)}
                     </span>
                   </div>
@@ -270,7 +294,8 @@ export default function AuctionPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         )}
       </div>
