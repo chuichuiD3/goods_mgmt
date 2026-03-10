@@ -238,7 +238,6 @@ export function ImportPageClient() {
       setManualPlatform("");
       setManualSourceUrl("");
       setManualPrice("");
-      setManualAuctionEnd("");
       setManualImage(null);
     } catch (error) {
       console.error(error);
