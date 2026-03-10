@@ -50,12 +50,46 @@ function extractMetaContent(html: string, property: string): string | null {
   return match?.[1] ?? null;
 }
 
+function cleanupListingTitle(raw: string | null): string | null {
+  if (!raw) return null;
+  let title = raw.trim();
+
+  // First, strip known marketplace/site suffixes like " - Yahoo!オークション"
+  const suffixPatterns = [
+    /\s*[-|｜]\s*Yahoo!オークション.*$/i,
+    /\s*[-|｜]\s*ヤフオク!? .*$/i,
+    /\s*[-|｜]\s*ヤフオク!?$/i,
+    /\s*[-|｜]\s*Yahoo! JAPAN Auctions?.*$/i,
+    /\s*[-|｜]\s*Yahoo! JAPAN.*$/i,
+    /\s*[-|｜]\s*Mercari.*$/i,
+    /\s*[-|｜]\s*メルカリ.*$/i,
+    /\s*[-|｜]\s*オークション.*$/i,
+  ];
+
+  for (const pattern of suffixPatterns) {
+    title = title.replace(pattern, '').trim();
+  }
+
+  // As a final fallback, if there's still a long suffix after the last separator
+  // and it clearly contains marketplace keywords, drop everything after the last separator.
+  const lastSep = Math.max(title.lastIndexOf(' - '), title.lastIndexOf('｜'));
+  if (lastSep !== -1) {
+    const suffix = title.slice(lastSep + 3);
+    if (/(yahoo|オークション|ヤフオク|mercari|メルカリ)/i.test(suffix)) {
+      title = title.slice(0, lastSep).trim();
+    }
+  }
+
+  return title || raw.trim();
+}
+
 function extractTitle(html: string): string | null {
   const ogTitle = extractMetaContent(html, 'og:title');
-  if (ogTitle) return ogTitle;
+  if (ogTitle) return cleanupListingTitle(ogTitle);
 
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return titleMatch?.[1]?.trim() ?? null;
+  const rawTitle = titleMatch?.[1] ?? null;
+  return cleanupListingTitle(rawTitle);
 }
 
 function extractImage(html: string): string | null {
@@ -123,8 +157,13 @@ function parseJapaneseDateTime(
     return null;
   }
 
-  // Interpret as local time (likely JST on Neon side); ISO is fine for our use.
-  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+  // Interpret the scraped time as JST (Asia/Tokyo) explicitly, then convert to UTC ISO.
+  // Example: "2026年3月10日 11:17" on Yahoo/Mercari is Japan local time.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const isoWithJstOffset =
+    `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00+09:00`;
+  const date = new Date(isoWithJstOffset);
+  if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 }
 

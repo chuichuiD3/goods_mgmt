@@ -29,6 +29,20 @@ export function ImportDraftCard({
   onSaveAsWishlist,
   onSaveAsCollection,
 }: ImportDraftCardProps) {
+  const formatBeijing = (iso: string | null): string => {
+    if (!iso) return "Not detected";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "Not detected";
+    return new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
   const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -79,9 +93,7 @@ export function ImportDraftCard({
         <div>
           <label className="block text-xs font-medium">Auction end time</label>
           <div className="mt-1 rounded border px-2 py-1 text-sm">
-            {auctionEndAt
-              ? new Date(auctionEndAt).toLocaleString()
-              : "Not detected"}
+            {formatBeijing(auctionEndAt)}
           </div>
         </div>
         <div>
