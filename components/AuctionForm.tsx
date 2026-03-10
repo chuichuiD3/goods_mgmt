@@ -65,6 +65,51 @@ export function AuctionForm({
     reader.readAsDataURL(file);
   };
 
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  const parseLocalParts = (iso: string | undefined): {
+    date: string;
+    hour: string;
+    minute: string;
+  } => {
+    if (!iso) return { date: '', hour: '', minute: '' };
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { date: '', hour: '', minute: '' };
+    return {
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      hour: pad(d.getHours()),
+      minute: pad(d.getMinutes()),
+    };
+  };
+
+  const buildIsoFromParts = (
+    dateStr: string,
+    hourStr: string,
+    minuteStr: string
+  ): string | undefined => {
+    if (!dateStr || hourStr === '' || minuteStr === '') return undefined;
+    const [yearStr, monthStr, dayStr] = dateStr.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+    if (
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day) ||
+      !Number.isFinite(hour) ||
+      !Number.isFinite(minute)
+    ) {
+      return undefined;
+    }
+    const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+    if (Number.isNaN(d.getTime())) return undefined;
+    return d.toISOString();
+  };
+
+  const { date, hour, minute } = parseLocalParts(values.auctionEndTime);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="space-y-1">
@@ -185,15 +230,70 @@ export function AuctionForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-sm font-medium">End time</label>
-          <input
-            type="datetime-local"
-            value={values.auctionEndTime ?? ''}
-            onChange={(e) =>
-              handleChange('auctionEndTime', e.target.value || undefined)
-            }
-            className="w-full rounded border px-2 py-1 text-sm"
-          />
+          <label className="block text-sm font-medium">
+            End time (24-hour, local)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) =>
+                handleChange(
+                  'auctionEndTime',
+                  buildIsoFromParts(e.target.value, hour, minute)
+                )
+              }
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={hour}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = Number(v);
+                if (!Number.isFinite(n) || n < 0 || n > 23) {
+                  handleChange(
+                    'auctionEndTime',
+                    buildIsoFromParts(date, '', minute)
+                  );
+                  return;
+                }
+                const hh = pad(n);
+                handleChange(
+                  'auctionEndTime',
+                  buildIsoFromParts(date, hh, minute)
+                );
+              }}
+              className="w-20 rounded border px-2 py-1 text-sm"
+              placeholder="HH"
+            />
+            <input
+              type="number"
+              min={0}
+              max={59}
+              value={minute}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = Number(v);
+                if (!Number.isFinite(n) || n < 0 || n > 59) {
+                  handleChange(
+                    'auctionEndTime',
+                    buildIsoFromParts(date, hour, '')
+                  );
+                  return;
+                }
+                const mm = pad(n);
+                handleChange(
+                  'auctionEndTime',
+                  buildIsoFromParts(date, hour, mm)
+                );
+              }}
+              className="w-20 rounded border px-2 py-1 text-sm"
+              placeholder="MM"
+            />
+          </div>
         </div>
       </div>
 

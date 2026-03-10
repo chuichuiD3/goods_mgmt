@@ -48,7 +48,55 @@ export function ImportDraftCard({
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     }).format(date);
+  };
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  const parseLocalParts = (iso: string | null): {
+    date: string;
+    hour: string;
+    minute: string;
+  } => {
+    if (!iso) {
+      return { date: "", hour: "", minute: "" };
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return { date: "", hour: "", minute: "" };
+    }
+    return {
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      hour: pad(d.getHours()),
+      minute: pad(d.getMinutes()),
+    };
+  };
+
+  const buildIsoFromParts = (
+    dateStr: string,
+    hourStr: string,
+    minuteStr: string
+  ): string => {
+    if (!dateStr || hourStr === "" || minuteStr === "") return "";
+    const [yearStr, monthStr, dayStr] = dateStr.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+    if (
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day) ||
+      !Number.isFinite(hour) ||
+      !Number.isFinite(minute)
+    ) {
+      return "";
+    }
+    const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString();
   };
 
   const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +113,8 @@ export function ImportDraftCard({
     };
     reader.readAsDataURL(file);
   };
+
+  const { date, hour, minute } = parseLocalParts(auctionEndAt);
 
   return (
     <div className="space-y-3 rounded border bg-white p-4 text-sm shadow-sm">
@@ -126,12 +176,54 @@ export function ImportDraftCard({
           <label className="block text-xs font-medium">
             Auction end time (Beijing)
           </label>
-          <input
-            type="datetime-local"
-            value={auctionEndAt ? auctionEndAt : ""}
-            onChange={(e) => onChangeAuctionEndAt(e.target.value)}
-            className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          />
+          <div className="mt-1 flex gap-2">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) =>
+                onChangeAuctionEndAt(
+                  buildIsoFromParts(e.target.value, hour, minute)
+                )
+              }
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={hour}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = Number(v);
+                if (!Number.isFinite(n) || n < 0 || n > 23) {
+                  onChangeAuctionEndAt(buildIsoFromParts(date, "", minute));
+                  return;
+                }
+                const hh = pad(n);
+                onChangeAuctionEndAt(buildIsoFromParts(date, hh, minute));
+              }}
+              className="w-16 rounded border px-2 py-1 text-sm"
+              placeholder="HH"
+            />
+            <input
+              type="number"
+              min={0}
+              max={59}
+              value={minute}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = Number(v);
+                if (!Number.isFinite(n) || n < 0 || n > 59) {
+                  onChangeAuctionEndAt(buildIsoFromParts(date, hour, ""));
+                  return;
+                }
+                const mm = pad(n);
+                onChangeAuctionEndAt(buildIsoFromParts(date, hour, mm));
+              }}
+              className="w-16 rounded border px-2 py-1 text-sm"
+              placeholder="MM"
+            />
+          </div>
           <div className="mt-1 text-[11px] text-zinc-500">
             Preview: {formatBeijing(auctionEndAt)}
           </div>
