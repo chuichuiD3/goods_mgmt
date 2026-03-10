@@ -30,7 +30,9 @@ export default function WishlistPage() {
   };
 
   useEffect(() => {
-    void loadItems();
+    (async () => {
+      await loadItems();
+    })();
   }, []);
 
   const handleCreate = async (values: WishlistFormValues) => {

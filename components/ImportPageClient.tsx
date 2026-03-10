@@ -38,10 +38,19 @@ export function ImportPageClient() {
   const [manualPlatform, setManualPlatform] = useState("");
   const [manualSourceUrl, setManualSourceUrl] = useState("");
   const [manualPrice, setManualPrice] = useState<string>("");
-  const [manualCurrency, setManualCurrency] = useState("JPY");
   const [manualAuctionEnd, setManualAuctionEnd] = useState<string>("");
   const [manualImage, setManualImage] = useState<string | null>(null);
-  const [importImage, setImportImage] = useState<string | null>(null);
+
+  // Canonical auction draft used by URL-parsed flow (and aligned to manual core fields)
+  const [auctionDraftTitle, setAuctionDraftTitle] = useState<string>("");
+  const [auctionDraftPlatform, setAuctionDraftPlatform] = useState<string>("");
+  const [auctionDraftSourceUrl, setAuctionDraftSourceUrl] =
+    useState<string>("");
+  const [auctionDraftPrice, setAuctionDraftPrice] = useState<string>("");
+  const [auctionDraftEndIso, setAuctionDraftEndIso] = useState<string>("");
+  const [auctionDraftImage, setAuctionDraftImage] = useState<string | null>(
+    null
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -60,7 +69,14 @@ export function ImportPageClient() {
       });
       const data: ImportResponse = await res.json();
       setResult(data);
-      setImportImage(data.parsed.rawImage ?? null);
+      setAuctionDraftTitle(data.parsed.rawTitle ?? "");
+      setAuctionDraftPlatform(data.parsed.platform ?? "");
+      setAuctionDraftSourceUrl(data.parsed.sourceUrl ?? url);
+      setAuctionDraftPrice(
+        data.parsed.listedPrice !== null ? String(data.parsed.listedPrice) : ""
+      );
+      setAuctionDraftEndIso(data.parsed.auctionEndAt ?? "");
+      setAuctionDraftImage(data.parsed.rawImage ?? null);
     } catch (error) {
       console.error(error);
       setMessage("Import failed. Please try again.");
@@ -75,6 +91,44 @@ export function ImportPageClient() {
     setResult(null);
   };
 
+  const saveManualAuction = async () => {
+    setMessage(null);
+    const priceNumber =
+      auctionDraftPrice.trim() === "" ? null : Number(auctionDraftPrice.trim());
+
+    const body = {
+      itemName: auctionDraftTitle || "(Untitled)",
+      platform: auctionDraftPlatform || null,
+      auctionUrl: auctionDraftSourceUrl || null,
+      currentPrice: Number.isFinite(priceNumber as number)
+        ? priceNumber
+        : null,
+      auctionEndTime:
+        auctionDraftEndIso.trim() !== ""
+          ? new Date(auctionDraftEndIso).toISOString()
+          : null,
+      imageUrl: auctionDraftImage ?? null,
+    };
+
+    try {
+      await fetch("/api/auctions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      setMessage("Saved successfully.");
+      setAuctionDraftTitle("");
+      setAuctionDraftPlatform("");
+      setAuctionDraftSourceUrl("");
+      setAuctionDraftPrice("");
+      setAuctionDraftEndIso("");
+      setAuctionDraftImage(null);
+    } catch (error) {
+      console.error(error);
+      setMessage("Manual auction save failed. Please try again.");
+    }
+  };
+
   const saveAs = async (target: "auction" | "wishlist" | "item") => {
     if (!result) return;
     const { parsed } = result;
@@ -85,16 +139,20 @@ export function ImportPageClient() {
 
     try {
       if (target === "auction") {
+        const priceNumber =
+          auctionDraftPrice.trim() === "" ? null : Number(auctionDraftPrice);
         await fetch("/api/auctions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...common,
-            platform: parsed.platform ?? "",
-            auctionUrl: parsed.sourceUrl,
-            currentPrice: parsed.listedPrice ?? null,
-            auctionEndTime: parsed.auctionEndAt,
-            imageUrl: importImage ?? parsed.rawImage ?? null,
+            itemName: auctionDraftTitle || common.itemName,
+            platform: auctionDraftPlatform || parsed.platform || null,
+            auctionUrl: auctionDraftSourceUrl || parsed.sourceUrl,
+            currentPrice: Number.isFinite(priceNumber as number)
+              ? priceNumber
+              : null,
+            auctionEndTime: auctionDraftEndIso || parsed.auctionEndAt,
+            imageUrl: auctionDraftImage ?? parsed.rawImage ?? null,
           }),
         });
       } else if (target === "wishlist") {
@@ -106,7 +164,7 @@ export function ImportPageClient() {
             expectedPrice: parsed.listedPrice ?? undefined,
             sourcePlatform: parsed.platform ?? "",
             sourceUrl: parsed.sourceUrl,
-            imageUrl: importImage ?? parsed.rawImage ?? null,
+            imageUrl: auctionDraftImage ?? parsed.rawImage ?? null,
           }),
         });
       } else {
@@ -120,7 +178,7 @@ export function ImportPageClient() {
             currency: parsed.currency || "UNKNOWN",
             totalAmount: parsed.listedPrice ?? 0,
             platform: parsed.platform ?? "",
-            imageUrl: importImage ?? parsed.rawImage ?? "",
+            imageUrl: auctionDraftImage ?? parsed.rawImage ?? "",
             status: "OWNED",
             sourceType: parsed.recommendedDestination === "AUCTION" ? "AUCTION" : "DIRECT_PURCHASE",
           }),
@@ -146,23 +204,7 @@ export function ImportPageClient() {
     };
 
     try {
-      if (manualDestination === "auction") {
-        await fetch("/api/auctions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...common,
-            platform: manualPlatform || null,
-            auctionUrl: manualSourceUrl || null,
-            currentPrice: priceNumber,
-            auctionEndTime:
-              manualAuctionEnd.trim() !== ""
-                ? new Date(manualAuctionEnd).toISOString()
-                : null,
-            imageUrl: manualImage ?? null,
-          }),
-        });
-      } else if (manualDestination === "wishlist") {
+      if (manualDestination === "wishlist") {
         await fetch("/api/wishlist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -182,7 +224,7 @@ export function ImportPageClient() {
             ...common,
             price: priceNumber ?? 0,
             quantity: 1,
-            currency: manualCurrency || "JPY",
+            currency: "JPY",
             totalAmount: priceNumber ?? 0,
             platform: manualPlatform || null,
             status: "OWNED",
@@ -247,119 +289,146 @@ export function ImportPageClient() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Title</label>
-              <input
-                type="text"
-                value={manualTitle}
-                onChange={(e) => setManualTitle(e.target.value)}
-                className="w-full rounded border px-2 py-1 text-sm"
-                required
-              />
-            </div>
+            {manualDestination !== "auction" && (
+              <>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium">Title</label>
+                  <input
+                    type="text"
+                    value={manualTitle}
+                    onChange={(e) => setManualTitle(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    required
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Platform</label>
-                <input
-                  type="text"
-                  value={manualPlatform}
-                  onChange={(e) => setManualPlatform(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="e.g. Mercari, Xianyu"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Source URL</label>
-                <input
-                  type="url"
-                  value={manualSourceUrl}
-                  onChange={(e) => setManualSourceUrl(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Optional link to listing"
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">Platform</label>
+                    <input
+                      type="text"
+                      value={manualPlatform}
+                      onChange={(e) => setManualPlatform(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      placeholder="e.g. Mercari, Xianyu"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">
+                      Source URL
+                    </label>
+                    <input
+                      type="url"
+                      value={manualSourceUrl}
+                      onChange={(e) => setManualSourceUrl(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      placeholder="Optional link to listing"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Price</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={manualPrice}
-                  onChange={(e) => setManualPrice(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Currency</label>
-                <input
-                  type="text"
-                  value={manualCurrency}
-                  onChange={(e) => setManualCurrency(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">Price</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {manualDestination === "auction" && (
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium">
+                      Auction end time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={manualAuctionEnd}
+                      onChange={(e) => setManualAuctionEnd(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium">Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) {
+                        setManualImage(null);
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        if (typeof reader.result === "string") {
+                          setManualImage(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="mt-1 text-xs"
+                  />
+                  {manualImage && (
+                    <div>
+                      <div className="text-xs font-medium text-zinc-500">
+                        Preview
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={manualImage}
+                        alt="Manual uploaded"
+                        className="mt-1 max-h-40 w-auto rounded border object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                >
+                  Save
+                </button>
+              </>
+            )}
 
             {manualDestination === "auction" && (
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">
-                  Auction end time
-                </label>
-                <input
-                  type="datetime-local"
-                  value={manualAuctionEnd}
-                  onChange={(e) => setManualAuctionEnd(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
+              <div className="space-y-3 rounded border bg-white p-3 text-sm">
+                <p className="text-xs text-zinc-600">
+                  Use the same auction fields as URL import.
+                </p>
+                <ImportDraftCard
+                  sourceUrl={auctionDraftSourceUrl}
+                  platform={auctionDraftPlatform}
+                  title={auctionDraftTitle}
+                  imageUrl={auctionDraftImage}
+                  listedPrice={
+                    auctionDraftPrice.trim() !== ""
+                      ? Number(auctionDraftPrice)
+                      : null
+                  }
+                  auctionEndAt={auctionDraftEndIso || null}
+                  recommendedDestination="AUCTION"
+                  onChangeImage={setAuctionDraftImage}
+                  onChangeTitle={setAuctionDraftTitle}
+                  onChangePlatform={setAuctionDraftPlatform}
+                  onChangeSourceUrl={setAuctionDraftSourceUrl}
+                  onChangePrice={setAuctionDraftPrice}
+                  onChangeAuctionEndAt={setAuctionDraftEndIso}
+                  onSaveAsAuction={saveManualAuction}
+                  onSaveAsCollection={() => {}}
+                  onSaveAsWishlist={() => {}}
                 />
               </div>
             )}
-
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Image</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) {
-                    setManualImage(null);
-                    return;
-                  }
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    if (typeof reader.result === "string") {
-                      setManualImage(reader.result);
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }}
-                className="mt-1 text-xs"
-              />
-              {manualImage && (
-                <div>
-                  <div className="text-xs font-medium text-zinc-500">
-                    Preview
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={manualImage}
-                    alt="Manual uploaded"
-                    className="mt-1 max-h-40 w-auto rounded border object-contain"
-                  />
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Save
-            </button>
           </form>
         </section>
 
@@ -405,15 +474,23 @@ export function ImportPageClient() {
           {result && (
             <div className="mt-4">
               <ImportDraftCard
-                sourceUrl={result.parsed.sourceUrl}
-                platform={result.parsed.platform}
-                title={result.parsed.rawTitle}
-                imageUrl={importImage}
-                listedPrice={result.parsed.listedPrice}
-                currency={result.parsed.currency}
-                auctionEndAt={result.parsed.auctionEndAt}
+                sourceUrl={auctionDraftSourceUrl || result.parsed.sourceUrl}
+                platform={auctionDraftPlatform || result.parsed.platform}
+                title={auctionDraftTitle || result.parsed.rawTitle}
+                imageUrl={auctionDraftImage}
+                listedPrice={
+                  auctionDraftPrice.trim() !== ""
+                    ? Number(auctionDraftPrice)
+                    : result.parsed.listedPrice
+                }
+                auctionEndAt={auctionDraftEndIso || result.parsed.auctionEndAt}
                 recommendedDestination={result.parsed.recommendedDestination}
-                onChangeImage={setImportImage}
+                onChangeImage={setAuctionDraftImage}
+                onChangeTitle={setAuctionDraftTitle}
+                onChangePlatform={setAuctionDraftPlatform}
+                onChangeSourceUrl={setAuctionDraftSourceUrl}
+                onChangePrice={setAuctionDraftPrice}
+                onChangeAuctionEndAt={setAuctionDraftEndIso}
                 onSaveAsAuction={() => saveAs("auction")}
                 onSaveAsCollection={() => saveAs("item")}
                 onSaveAsWishlist={() => saveAs("wishlist")}

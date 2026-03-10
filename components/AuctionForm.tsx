@@ -8,6 +8,7 @@ export type AuctionFormValues = {
   platform?: string;
   auctionUrl?: string;
   currentPrice?: number;
+  imageUrl?: string | null;
   myMaxBid?: number;
   auctionEndTime?: string;
   status?: string;
@@ -33,6 +34,7 @@ export function AuctionForm({
     platform: initialValues?.platform ?? '',
     auctionUrl: initialValues?.auctionUrl ?? '',
     currentPrice: initialValues?.currentPrice,
+    imageUrl: initialValues?.imageUrl ?? null,
     myMaxBid: initialValues?.myMaxBid,
     auctionEndTime: initialValues?.auctionEndTime,
     status: initialValues?.status ?? 'WATCHING',
@@ -46,6 +48,21 @@ export function AuctionForm({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     await onSubmit(values);
+  };
+
+  const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      handleChange('imageUrl', null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        handleChange('imageUrl', reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -111,6 +128,27 @@ export function AuctionForm({
           onChange={(e) => handleChange('auctionUrl', e.target.value)}
           className="w-full rounded border px-2 py-1 text-sm"
         />
+      </div>
+
+      <div className="space-y-1">
+        <label className="block text-sm font-medium">Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageFile}
+          className="mt-1 text-xs"
+        />
+        {values.imageUrl && (
+          <div>
+            <div className="text-xs font-medium text-zinc-500">Preview</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={values.imageUrl}
+              alt={values.itemName || 'Auction image'}
+              className="mt-1 max-h-40 w-auto rounded border object-contain"
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

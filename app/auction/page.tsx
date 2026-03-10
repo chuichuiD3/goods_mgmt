@@ -7,12 +7,17 @@ import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
 type Auction = {
   id: number;
   itemName: string;
+  series: string | null;
+  character: string | null;
+  category: string | null;
   platform: string | null;
   auctionUrl: string | null;
   currentPrice: number | null;
+  myMaxBid: number | null;
   auctionEndTime: string | null;
   imageUrl: string | null;
   status: string;
+  notes: string | null;
 };
 
 export default function AuctionPage() {
@@ -32,7 +37,9 @@ export default function AuctionPage() {
   };
 
   useEffect(() => {
-    void loadAuctions();
+    (async () => {
+      await loadAuctions();
+    })();
   }, []);
 
   useEffect(() => {
@@ -123,10 +130,17 @@ export default function AuctionPage() {
           <AuctionForm
             initialValues={{
               itemName: editingAuction.itemName,
+              series: editingAuction.series ?? "",
+              character: editingAuction.character ?? "",
+              category: editingAuction.category ?? "",
               platform: editingAuction.platform ?? "",
+              auctionUrl: editingAuction.auctionUrl ?? "",
               currentPrice: editingAuction.currentPrice ?? undefined,
+              myMaxBid: editingAuction.myMaxBid ?? undefined,
               auctionEndTime: editingAuction.auctionEndTime ?? undefined,
+              imageUrl: editingAuction.imageUrl ?? null,
               status: editingAuction.status,
+              notes: editingAuction.notes ?? "",
             }}
             onSubmit={(values) =>
               editingAuction ? handleUpdate(editingAuction.id, values) : undefined
@@ -170,7 +184,6 @@ export default function AuctionPage() {
                   <th className="border px-2 py-1 text-left">Platform</th>
                   <th className="border px-2 py-1 text-left">Source URL</th>
                   <th className="border px-2 py-1 text-left">Price</th>
-                  <th className="border px-2 py-1 text-left">Currency</th>
                   <th className="border px-2 py-1 text-left">End time</th>
                   <th className="border px-2 py-1 text-left">Countdown</th>
                   <th className="border px-2 py-1 text-left">Status</th>
@@ -220,9 +233,6 @@ export default function AuctionPage() {
                       {auction.currentPrice !== null
                         ? auction.currentPrice.toLocaleString()
                         : "-"}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {auction.currentPrice !== null ? "JPY" : "-"}
                     </td>
                     <td className="border px-2 py-1">
                       {formatBeijing(auction.auctionEndTime)}

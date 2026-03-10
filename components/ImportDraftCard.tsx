@@ -6,10 +6,14 @@ type ImportDraftCardProps = {
   title: string | null;
   imageUrl: string | null;
   listedPrice: number | null;
-  currency: string;
   auctionEndAt: string | null;
   recommendedDestination: "AUCTION" | "COLLECTION";
   onChangeImage: (imageDataUrl: string | null) => void;
+  onChangeTitle: (title: string) => void;
+  onChangePlatform: (platform: string) => void;
+  onChangeSourceUrl: (sourceUrl: string) => void;
+  onChangePrice: (price: string) => void;
+  onChangeAuctionEndAt: (auctionEndAt: string) => void;
   onSaveAsAuction: () => void;
   onSaveAsWishlist: () => void;
   onSaveAsCollection: () => void;
@@ -21,10 +25,14 @@ export function ImportDraftCard({
   title,
   imageUrl,
   listedPrice,
-  currency,
   auctionEndAt,
   recommendedDestination,
   onChangeImage,
+  onChangeTitle,
+  onChangePlatform,
+  onChangeSourceUrl,
+  onChangePrice,
+  onChangeAuctionEndAt,
   onSaveAsAuction,
   onSaveAsWishlist,
   onSaveAsCollection,
@@ -60,40 +68,72 @@ export function ImportDraftCard({
 
   return (
     <div className="space-y-3 rounded border bg-white p-4 text-sm shadow-sm">
-      <div className="space-y-1">
-        <div className="text-xs font-medium text-zinc-500">Source URL</div>
-        <a
-          href={sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="break-all text-blue-600 underline"
-        >
-          {sourceUrl}
-        </a>
-        {platform && (
-          <div className="text-xs text-zinc-500">Platform: {platform}</div>
-        )}
-      </div>
-
       <div className="space-y-2">
         <div>
           <label className="block text-xs font-medium">Title</label>
-          <div className="mt-1 rounded border px-2 py-1 text-sm">
-            {title ?? "(Untitled)"}
+          <input
+            type="text"
+            value={title ?? ""}
+            onChange={(e) => onChangeTitle(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-1 text-sm"
+            placeholder="(Untitled)"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium">Platform</label>
+            <input
+              type="text"
+              value={platform ?? ""}
+              onChange={(e) => onChangePlatform(e.target.value)}
+              className="mt-1 w-full rounded border px-2 py-1 text-sm"
+              placeholder="e.g. Yahoo Auctions, Mercari"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium">Price</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={listedPrice !== null ? String(listedPrice) : ""}
+              onChange={(e) => onChangePrice(e.target.value)}
+              className="mt-1 w-full rounded border px-2 py-1 text-sm"
+              placeholder="Not detected"
+            />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium">Price</label>
-          <div className="mt-1 rounded border px-2 py-1 text-sm">
-            {listedPrice !== null
-              ? `${listedPrice.toLocaleString()} ${currency}`
-              : "Not detected"}
-          </div>
+          <label className="block text-xs font-medium">Source URL</label>
+          <input
+            type="url"
+            value={sourceUrl}
+            onChange={(e) => onChangeSourceUrl(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-1 text-sm"
+          />
+          {sourceUrl && (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block break-all text-xs text-blue-600 underline"
+            >
+              Open source URL
+            </a>
+          )}
         </div>
         <div>
-          <label className="block text-xs font-medium">Auction end time</label>
-          <div className="mt-1 rounded border px-2 py-1 text-sm">
-            {formatBeijing(auctionEndAt)}
+          <label className="block text-xs font-medium">
+            Auction end time (Beijing)
+          </label>
+          <input
+            type="datetime-local"
+            value={auctionEndAt ? auctionEndAt : ""}
+            onChange={(e) => onChangeAuctionEndAt(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-1 text-sm"
+          />
+          <div className="mt-1 text-[11px] text-zinc-500">
+            Preview: {formatBeijing(auctionEndAt)}
           </div>
         </div>
         <div>
