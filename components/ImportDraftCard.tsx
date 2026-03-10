@@ -1,4 +1,6 @@
-"use client";
+\"use client\";
+
+import { useEffect, useState } from \"react\";
 
 type ImportDraftCardProps = {
   sourceUrl: string;
@@ -59,13 +61,9 @@ export function ImportDraftCard({
     hour: string;
     minute: string;
   } => {
-    if (!iso) {
-      return { date: "", hour: "", minute: "" };
-    }
+    if (!iso) return { date: "", hour: "", minute: "" };
     const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) {
-      return { date: "", hour: "", minute: "" };
-    }
+    if (Number.isNaN(d.getTime())) return { date: "", hour: "", minute: "" };
     return {
       date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
       hour: pad(d.getHours()),
@@ -77,8 +75,8 @@ export function ImportDraftCard({
     dateStr: string,
     hourStr: string,
     minuteStr: string
-  ): string => {
-    if (!dateStr || hourStr === "" || minuteStr === "") return "";
+  ): string | null => {
+    if (!dateStr || hourStr === "" || minuteStr === "") return null;
     const [yearStr, monthStr, dayStr] = dateStr.split("-");
     const year = Number(yearStr);
     const month = Number(monthStr);
@@ -92,10 +90,10 @@ export function ImportDraftCard({
       !Number.isFinite(hour) ||
       !Number.isFinite(minute)
     ) {
-      return "";
+      return null;
     }
     const d = new Date(year, month - 1, day, hour, minute, 0, 0);
-    if (Number.isNaN(d.getTime())) return "";
+    if (Number.isNaN(d.getTime())) return null;
     return d.toISOString();
   };
 
@@ -114,7 +112,13 @@ export function ImportDraftCard({
     reader.readAsDataURL(file);
   };
 
-  const { date, hour, minute } = parseLocalParts(auctionEndAt);
+  const [{ date, hour, minute }, setLocalParts] = useState(() =>
+    parseLocalParts(auctionEndAt)
+  );
+
+  useEffect(() => {
+    setLocalParts(parseLocalParts(auctionEndAt));
+  }, [auctionEndAt]);
 
   return (
     <div className="space-y-3 rounded border bg-white p-4 text-sm shadow-sm">
@@ -181,9 +185,16 @@ export function ImportDraftCard({
               type="date"
               value={date}
               onChange={(e) =>
-                onChangeAuctionEndAt(
-                  buildIsoFromParts(e.target.value, hour, minute)
-                )
+                setLocalParts((prev) => {
+                  const next = { ...prev, date: e.target.value };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
+                  );
+                  onChangeAuctionEndAt(iso);
+                  return next;
+                })
               }
               className="w-full rounded border px-2 py-1 text-sm"
             />
@@ -195,12 +206,18 @@ export function ImportDraftCard({
               onChange={(e) => {
                 const v = e.target.value;
                 const n = Number(v);
-                if (!Number.isFinite(n) || n < 0 || n > 23) {
-                  onChangeAuctionEndAt(buildIsoFromParts(date, "", minute));
-                  return;
-                }
-                const hh = pad(n);
-                onChangeAuctionEndAt(buildIsoFromParts(date, hh, minute));
+                const safe =
+                  !Number.isFinite(n) || n < 0 || n > 23 ? "" : pad(n);
+                setLocalParts((prev) => {
+                  const next = { ...prev, hour: safe };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
+                  );
+                  onChangeAuctionEndAt(iso);
+                  return next;
+                });
               }}
               className="w-16 rounded border px-2 py-1 text-sm"
               placeholder="HH"
@@ -213,12 +230,18 @@ export function ImportDraftCard({
               onChange={(e) => {
                 const v = e.target.value;
                 const n = Number(v);
-                if (!Number.isFinite(n) || n < 0 || n > 59) {
-                  onChangeAuctionEndAt(buildIsoFromParts(date, hour, ""));
-                  return;
-                }
-                const mm = pad(n);
-                onChangeAuctionEndAt(buildIsoFromParts(date, hour, mm));
+                const safe =
+                  !Number.isFinite(n) || n < 0 || n > 59 ? "" : pad(n);
+                setLocalParts((prev) => {
+                  const next = { ...prev, minute: safe };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
+                  );
+                  onChangeAuctionEndAt(iso);
+                  return next;
+                });
               }}
               className="w-16 rounded border px-2 py-1 text-sm"
               placeholder="MM"

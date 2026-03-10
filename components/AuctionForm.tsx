@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 
 export type AuctionFormValues = {
   itemName: string;
@@ -108,7 +108,15 @@ export function AuctionForm({
     return d.toISOString();
   };
 
-  const { date, hour, minute } = parseLocalParts(values.auctionEndTime);
+  const [{ date, hour, minute }, setLocalParts] = useState(() =>
+    parseLocalParts(initialValues?.auctionEndTime)
+  );
+
+  useEffect(() => {
+    if (initialValues?.auctionEndTime) {
+      setLocalParts(parseLocalParts(initialValues.auctionEndTime));
+    }
+  }, [initialValues?.auctionEndTime]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -238,10 +246,16 @@ export function AuctionForm({
               type="date"
               value={date}
               onChange={(e) =>
-                handleChange(
-                  'auctionEndTime',
-                  buildIsoFromParts(e.target.value, hour, minute)
-                )
+                setLocalParts((prev) => {
+                  const next = { ...prev, date: e.target.value };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
+                  );
+                  handleChange('auctionEndTime', iso);
+                  return next;
+                })
               }
               className="w-full rounded border px-2 py-1 text-sm"
             />
@@ -253,18 +267,18 @@ export function AuctionForm({
               onChange={(e) => {
                 const v = e.target.value;
                 const n = Number(v);
-                if (!Number.isFinite(n) || n < 0 || n > 23) {
-                  handleChange(
-                    'auctionEndTime',
-                    buildIsoFromParts(date, '', minute)
+                const safe =
+                  !Number.isFinite(n) || n < 0 || n > 23 ? '' : pad(n);
+                setLocalParts((prev) => {
+                  const next = { ...prev, hour: safe };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
                   );
-                  return;
-                }
-                const hh = pad(n);
-                handleChange(
-                  'auctionEndTime',
-                  buildIsoFromParts(date, hh, minute)
-                );
+                  handleChange('auctionEndTime', iso);
+                  return next;
+                });
               }}
               className="w-20 rounded border px-2 py-1 text-sm"
               placeholder="HH"
@@ -277,18 +291,18 @@ export function AuctionForm({
               onChange={(e) => {
                 const v = e.target.value;
                 const n = Number(v);
-                if (!Number.isFinite(n) || n < 0 || n > 59) {
-                  handleChange(
-                    'auctionEndTime',
-                    buildIsoFromParts(date, hour, '')
+                const safe =
+                  !Number.isFinite(n) || n < 0 || n > 59 ? '' : pad(n);
+                setLocalParts((prev) => {
+                  const next = { ...prev, minute: safe };
+                  const iso = buildIsoFromParts(
+                    next.date,
+                    next.hour,
+                    next.minute
                   );
-                  return;
-                }
-                const mm = pad(n);
-                handleChange(
-                  'auctionEndTime',
-                  buildIsoFromParts(date, hour, mm)
-                );
+                  handleChange('auctionEndTime', iso);
+                  return next;
+                });
               }}
               className="w-20 rounded border px-2 py-1 text-sm"
               placeholder="MM"
