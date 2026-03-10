@@ -42,6 +42,20 @@ export default function AuctionPage() {
     return () => clearInterval(id);
   }, []);
 
+  const formatBeijing = (iso: string | null): string => {
+    if (!iso) return "-";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "-";
+    return new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
   const formatCountdown = (end: string | null) => {
     if (!end) return "—";
     const endDate = new Date(end);
@@ -211,9 +225,7 @@ export default function AuctionPage() {
                       {auction.currentPrice !== null ? "JPY" : "-"}
                     </td>
                     <td className="border px-2 py-1">
-                      {auction.auctionEndTime
-                        ? new Date(auction.auctionEndTime).toLocaleString()
-                        : "-"}
+                      {formatBeijing(auction.auctionEndTime)}
                     </td>
                     <td className="border px-2 py-1">
                       {formatCountdown(auction.auctionEndTime)}
