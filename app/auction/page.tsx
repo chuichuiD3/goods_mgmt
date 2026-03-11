@@ -26,6 +26,7 @@ export default function AuctionPage() {
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
   const [creatingItemFromAuction, setCreatingItemFromAuction] =
     useState<Auction | null>(null);
+  const [activeTab, setActiveTab] = useState<"ONGOING" | "ENDED">("ONGOING");
   const [now, setNow] = useState<Date>(() => new Date());
 
   const loadAuctions = async () => {
@@ -170,15 +171,91 @@ export default function AuctionPage() {
       )}
 
       <div className="rounded border bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold">All auctions</h2>
+        <div className="flex items-center gap-2 border-b pb-2 text-xs font-medium">
+          {(() => {
+            const nowTime = now.getTime();
+            const ongoingCount = auctions.filter((a) => {
+              if (!a.auctionEndTime) return true;
+              const t = new Date(a.auctionEndTime).getTime();
+              return !Number.isNaN(t) && t > nowTime;
+            }).length;
+            const endedCount = auctions.filter((a) => {
+              if (!a.auctionEndTime) return false;
+              const t = new Date(a.auctionEndTime).getTime();
+              return !Number.isNaN(t) && t <= nowTime;
+            }).length;
+            return (
+              <>
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1 ${
+                    activeTab === "ONGOING"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                  onClick={() => setActiveTab("ONGOING")}
+                >
+                  Ongoing ({ongoingCount})
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1 ${
+                    activeTab === "ENDED"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                  onClick={() => setActiveTab("ENDED")}
+                >
+                  Ended ({endedCount})
+                </button>
+              </>
+            );
+          })()}
+        </div>
+
         {loading ? (
-          <div className="text-xs text-zinc-500">Loading…</div>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
+              >
+                <div className="h-40 w-full animate-pulse bg-zinc-100" />
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <div className="h-3 w-20 animate-pulse rounded bg-zinc-100" />
+                  <div className="h-4 w-32 animate-pulse rounded bg-zinc-100" />
+                  <div className="h-3 w-40 animate-pulse rounded bg-zinc-100" />
+                  <div className="mt-2 h-8 w-full animate-pulse rounded bg-zinc-100" />
+                  <div className="mt-2 flex gap-2">
+                    <div className="h-6 w-16 animate-pulse rounded bg-zinc-100" />
+                    <div className="h-6 w-16 animate-pulse rounded bg-zinc-100" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : auctions.length === 0 ? (
-          <div className="text-xs text-zinc-500">No auctions yet.</div>
+          <div className="mt-3 text-xs text-zinc-500">No auctions yet.</div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...auctions]
-              .sort((a, b) => {
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(() => {
+              const nowTime = now.getTime();
+              const ongoing: Auction[] = [];
+              const ended: Auction[] = [];
+              auctions.forEach((a) => {
+                if (!a.auctionEndTime) {
+                  ongoing.push(a);
+                  return;
+                }
+                const t = new Date(a.auctionEndTime).getTime();
+                if (Number.isNaN(t) || t > nowTime) {
+                  ongoing.push(a);
+                } else {
+                  ended.push(a);
+                }
+              });
+
+              const ongoingSorted = [...ongoing].sort((a, b) => {
                 const aTime = a.auctionEndTime
                   ? new Date(a.auctionEndTime).getTime()
                   : Number.POSITIVE_INFINITY;
@@ -186,116 +263,144 @@ export default function AuctionPage() {
                   ? new Date(b.auctionEndTime).getTime()
                   : Number.POSITIVE_INFINITY;
                 return aTime - bTime;
-              })
-              .map((auction) => {
+              });
+
+              const endedSorted = [...ended].sort((a, b) => {
+                const aTime = a.auctionEndTime
+                  ? new Date(a.auctionEndTime).getTime()
+                  : Number.NEGATIVE_INFINITY;
+                const bTime = b.auctionEndTime
+                  ? new Date(b.auctionEndTime).getTime()
+                  : Number.NEGATIVE_INFINITY;
+                return bTime - aTime;
+              });
+
+              const toRender =
+                activeTab === "ONGOING" ? ongoingSorted : endedSorted;
+
+              if (toRender.length === 0) {
+                return (
+                  <div className="col-span-full text-xs text-zinc-500">
+                    {activeTab === "ONGOING"
+                      ? "No ongoing auctions."
+                      : "No ended auctions."}
+                  </div>
+                );
+              }
+
+              return toRender.map((auction) => {
                 const diffMs =
                   auction.auctionEndTime != null
-                    ? new Date(auction.auctionEndTime).getTime() -
-                      now.getTime()
+                    ? new Date(auction.auctionEndTime).getTime() - nowTime
                     : null;
                 const isSoon =
                   diffMs != null && diffMs > 0 && diffMs <= 5 * 60 * 60 * 1000;
+
                 return (
-              <div
-                key={auction.id}
-                className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
-              >
-                <div className="relative h-40 w-full bg-zinc-100">
-                  {auction.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={auction.imageUrl}
-                      alt={auction.itemName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
-                      No image
+                  <div
+                    key={auction.id}
+                    className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
+                  >
+                    <div className="relative h-40 w-full bg-zinc-100">
+                      {auction.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={auction.imageUrl}
+                          alt={auction.itemName}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
+                          No image
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-2 p-3">
-                  <div>
-                    <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      {auction.platform ?? "Unknown platform"}
-                    </div>
-                    <div className="mt-0.5 line-clamp-2 text-sm font-semibold text-zinc-900">
-                      {auction.itemName}
-                    </div>
-                    {auction.auctionUrl ? (
-                      <a
-                        href={auction.auctionUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-block break-all text-[11px] text-blue-600 underline"
-                      >
-                        {auction.auctionUrl}
-                      </a>
-                    ) : (
-                      <div className="mt-1 text-[11px] text-zinc-500">
-                        No source URL
+                    <div className="flex flex-1 flex-col gap-2 p-3">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                          {auction.platform ?? "Unknown platform"}
+                        </div>
+                        <div className="mt-0.5 line-clamp-2 text-sm font-semibold text-zinc-900">
+                          {auction.itemName}
+                        </div>
+                        {auction.auctionUrl ? (
+                          <a
+                            href={auction.auctionUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-block break-all text-[11px] text-blue-600 underline"
+                          >
+                            {auction.auctionUrl}
+                          </a>
+                        ) : (
+                          <div className="mt-1 text-[11px] text-zinc-500">
+                            No source URL
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="mt-1 flex items-baseline justify-between gap-2">
-                    <div className="text-xs text-zinc-500">Current price</div>
-                    <div className="text-sm font-semibold text-zinc-900">
-                      {auction.currentPrice !== null
-                        ? auction.currentPrice.toLocaleString()
-                        : "—"}
+                      <div className="mt-1 flex items-baseline justify-between gap-2">
+                        <div className="text-xs text-zinc-500">
+                          Current price
+                        </div>
+                        <div className="text-sm font-semibold text-zinc-900">
+                          {auction.currentPrice !== null
+                            ? auction.currentPrice.toLocaleString()
+                            : "—"}
+                        </div>
+                      </div>
+
+                      <div className="mt-1 flex items-center justify-between gap-2 rounded-md bg-zinc-50 px-2 py-1.5">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] uppercase tracking-wide text-zinc-500">
+                            Ends (Beijing)
+                          </span>
+                          <span className="text-xs text-zinc-900">
+                            {formatBeijing(auction.auctionEndTime)}
+                          </span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            isSoon
+                              ? "bg-red-600 text-white"
+                              : "bg-zinc-900 text-white"
+                          }`}
+                        >
+                          {formatCountdown(auction.auctionEndTime)}
+                        </span>
+                      </div>
+
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                          {auction.status}
+                        </span>
+                        <div className="flex flex-wrap gap-1 text-[11px]">
+                          <button
+                            onClick={() => setEditingAuction(auction)}
+                            className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(auction.id)}
+                            className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => handleConvertToItem(auction)}
+                            className="rounded border px-2 py-0.5 hover:bg-zinc-100"
+                          >
+                            Mark as won → Item
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="mt-1 flex items-center justify-between gap-2 rounded-md bg-zinc-50 px-2 py-1.5">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] uppercase tracking-wide text-zinc-500">
-                        Ends (Beijing)
-                      </span>
-                      <span className="text-xs text-zinc-900">
-                        {formatBeijing(auction.auctionEndTime)}
-                      </span>
-                    </div>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        isSoon
-                          ? "bg-red-600 text-white"
-                          : "bg-zinc-900 text-white"
-                      }`}
-                    >
-                      {formatCountdown(auction.auctionEndTime)}
-                    </span>
-                  </div>
-
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
-                      {auction.status}
-                    </span>
-                    <div className="flex flex-wrap gap-1 text-[11px]">
-                      <button
-                        onClick={() => setEditingAuction(auction)}
-                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(auction.id)}
-                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => handleConvertToItem(auction)}
-                        className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                      >
-                        Mark as won → Item
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              });
+            })()}
           </div>
         )}
       </div>
