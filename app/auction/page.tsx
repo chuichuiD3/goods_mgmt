@@ -161,6 +161,7 @@ export default function AuctionPage() {
               itemName: creatingItemFromAuction.itemName,
               platform: creatingItemFromAuction.platform ?? "",
               price: creatingItemFromAuction.currentPrice ?? undefined,
+              imageUrl: creatingItemFromAuction.imageUrl ?? "",
               status: "PENDING_PAYMENT",
               sourceType: "AUCTION",
             }}
