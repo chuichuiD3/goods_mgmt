@@ -292,11 +292,13 @@ export default function AuctionPage() {
           {(() => {
             const nowTime = now.getTime();
             const ongoingCount = auctions.filter((a) => {
+              if (a.status === "WON") return false;
               if (!a.auctionEndTime) return true;
               const t = new Date(a.auctionEndTime).getTime();
               return !Number.isNaN(t) && t > nowTime;
             }).length;
             const endedCount = auctions.filter((a) => {
+              if (a.status === "WON") return true;
               if (!a.auctionEndTime) return false;
               const t = new Date(a.auctionEndTime).getTime();
               return !Number.isNaN(t) && t <= nowTime;
@@ -360,6 +362,10 @@ export default function AuctionPage() {
               const ongoing: Auction[] = [];
               const ended: Auction[] = [];
               auctions.forEach((a) => {
+                if (a.status === "WON") {
+                  ended.push(a);
+                  return;
+                }
                 if (!a.auctionEndTime) {
                   ongoing.push(a);
                   return;
