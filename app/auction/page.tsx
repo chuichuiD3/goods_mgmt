@@ -20,6 +20,29 @@ type Auction = {
   notes: string | null;
 };
 
+type CollectionItem = {
+  id: number;
+  itemName: string;
+  series: string | null;
+  character: string | null;
+  category: string | null;
+  platform: string | null;
+  shop: string | null;
+  price: number;
+  quantity: number;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  orderDate: string | null;
+  paymentDeadline: string | null;
+  paidAt: string | null;
+  isPresale: boolean;
+  sourceType: string;
+  sourceOrderId: string | null;
+  imageUrl: string | null;
+  notes: string | null;
+};
+
 export default function AuctionPage() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +72,99 @@ export default function AuctionPage() {
     }, 30000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (loading || auctions.length === 0) return;
+    const flagKey = "wonRepairDone_v1";
+    if (window.localStorage.getItem(flagKey) === "1") return;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/items");
+        if (!res.ok) return;
+        const items: CollectionItem[] = await res.json();
+
+        const itemsByKey = new Map<string, CollectionItem>();
+        items.forEach((item) => {
+          const key = `AUCTION:${item.itemName}:${item.platform ?? ""}`;
+          if (item.sourceType === "AUCTION" && !itemsByKey.has(key)) {
+            itemsByKey.set(key, item);
+          }
+        });
+
+        const wonAuctions = auctions.filter(
+          (a) => a.status === "WON"
+        );
+
+        for (const auction of wonAuctions) {
+          const key = `AUCTION:${auction.itemName}:${auction.platform ?? ""}`;
+          const existing = itemsByKey.get(key);
+
+          if (existing) {
+            if (!existing.imageUrl && auction.imageUrl) {
+              await fetch(`/api/items/${existing.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  itemName: existing.itemName,
+                  series: existing.series,
+                  character: existing.character,
+                  category: existing.category,
+                  platform: existing.platform,
+                  shop: existing.shop,
+                  price: existing.price,
+                  quantity: existing.quantity,
+                  totalAmount: existing.totalAmount,
+                  currency: existing.currency,
+                  status: existing.status,
+                  orderDate: existing.orderDate,
+                  paymentDeadline: existing.paymentDeadline,
+                  paidAt: existing.paidAt,
+                  isPresale: existing.isPresale,
+                  sourceType: existing.sourceType,
+                  sourceOrderId: existing.sourceOrderId,
+                  imageUrl: auction.imageUrl,
+                  notes: existing.notes,
+                }),
+              });
+            }
+            continue;
+          }
+
+          await fetch("/api/items", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemName: auction.itemName,
+              series: auction.series ?? null,
+              character: auction.character ?? null,
+              category: auction.category ?? null,
+              platform: auction.platform ?? null,
+              shop: null,
+              price: auction.currentPrice ?? 0,
+              quantity: 1,
+              totalAmount: auction.currentPrice ?? 0,
+              currency: "JPY",
+              status: "OWNED",
+              orderDate: null,
+              paymentDeadline: null,
+              paidAt: null,
+              isPresale: false,
+              sourceType: "AUCTION",
+              sourceOrderId: null,
+              imageUrl: auction.imageUrl ?? null,
+              notes: auction.notes ?? null,
+            }),
+          });
+        }
+
+        window.localStorage.setItem(flagKey, "1");
+      } catch {
+        // best-effort repair; ignore failures
+      }
+    })();
+  }, [loading, auctions]);
 
   const formatBeijing = (iso: string | null): string => {
     if (!iso) return "-";
