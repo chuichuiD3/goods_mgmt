@@ -4,6 +4,18 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   const items = await prisma.item.findMany({
     orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      itemName: true,
+      series: true,
+      character: true,
+      category: true,
+      platform: true,
+      price: true,
+      quantity: true,
+      totalAmount: true,
+      status: true,
+    },
   });
   return NextResponse.json(items);
 }
