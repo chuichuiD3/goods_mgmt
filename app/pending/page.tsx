@@ -122,7 +122,14 @@ export default function PendingPage() {
   const [iName, setIName] = useState("");
   const [iPrice, setIPrice] = useState<string>("");
   const [iQty, setIQty] = useState<string>("1");
-  const [iImageUrl, setIImageUrl] = useState<string>("");
+  const [iImageUrl, setIImageUrl] = useState<string | null>(null);
+
+  // Holding item edit form (single item at a time)
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [eName, setEName] = useState("");
+  const [ePrice, setEPrice] = useState<string>("");
+  const [eQty, setEQty] = useState<string>("1");
+  const [eImageUrl, setEImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
@@ -276,13 +283,56 @@ export default function PendingPage() {
         name: iName,
         price: iPrice.trim() === "" ? 0 : Number(iPrice),
         quantity: iQty.trim() === "" ? 1 : Number(iQty),
-        imageUrl: iImageUrl.trim() === "" ? null : iImageUrl.trim(),
+        imageUrl: iImageUrl ?? null,
       }),
     });
     setIName("");
     setIPrice("");
     setIQty("1");
-    setIImageUrl("");
+    setIImageUrl(null);
+    await loadHolding();
+  };
+
+  const startEditHoldingItem = (it: HoldingOrderItem) => {
+    setEditingItemId(it.id);
+    setEName(it.name);
+    setEPrice(String(it.price));
+    setEQty(String(it.quantity));
+    setEImageUrl(null); // only set when user picks a new image
+  };
+
+  const cancelEditHoldingItem = () => {
+    setEditingItemId(null);
+    setEName("");
+    setEPrice("");
+    setEQty("1");
+    setEImageUrl(null);
+  };
+
+  const saveHoldingItem = async (it: HoldingOrderItem) => {
+    const body: Record<string, unknown> = {
+      name: eName,
+      price: ePrice.trim() === "" ? 0 : Number(ePrice),
+      quantity: eQty.trim() === "" ? 1 : Number(eQty),
+    };
+
+    // Safe behavior: only replace image if a new one is provided.
+    if (eImageUrl) body.imageUrl = eImageUrl;
+
+    await fetch(`/api/pending/holding-items/${it.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    cancelEditHoldingItem();
+    await loadHolding();
+  };
+
+  const deleteHoldingItem = async (id: number) => {
+    if (!confirm("Delete this item?")) return;
+    await fetch(`/api/pending/holding-items/${id}`, { method: "DELETE" });
+    if (editingItemId === id) cancelEditHoldingItem();
     await loadHolding();
   };
 
@@ -861,15 +911,103 @@ export default function PendingPage() {
                                         </div>
                                       )}
                                     </div>
-                                    <div>
-                                      <div className="font-medium text-zinc-900">{it.name}</div>
-                                      <div className="text-zinc-600">
-                                        {it.price.toLocaleString()} × {it.quantity}
+                                    {editingItemId === it.id ? (
+                                      <div className="space-y-1">
+                                        <input
+                                          value={eName}
+                                          onChange={(e) => setEName(e.target.value)}
+                                          className="w-full rounded border px-2 py-1 text-xs"
+                                          placeholder="Name"
+                                        />
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="number"
+                                            value={ePrice}
+                                            onChange={(e) => setEPrice(e.target.value)}
+                                            className="w-24 rounded border px-2 py-1 text-xs"
+                                            placeholder="Price"
+                                          />
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            value={eQty}
+                                            onChange={(e) => setEQty(e.target.value)}
+                                            className="w-16 rounded border px-2 py-1 text-xs"
+                                            placeholder="Qty"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) {
+                                                setEImageUrl(null);
+                                                return;
+                                              }
+                                              const reader = new FileReader();
+                                              reader.onload = () => {
+                                                if (typeof reader.result === "string") {
+                                                  setEImageUrl(reader.result);
+                                                }
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }}
+                                            className="mt-1 text-[11px]"
+                                          />
+                                          {eImageUrl && (
+                                            <div className="text-[11px] text-zinc-500">
+                                              New image selected
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
+                                    ) : (
+                                      <div>
+                                        <div className="font-medium text-zinc-900">{it.name}</div>
+                                        <div className="text-zinc-600">
+                                          {it.price.toLocaleString()} × {it.quantity}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                  <div className="text-zinc-900">
-                                    {(it.price * it.quantity).toLocaleString()}
+                                  <div className="flex items-center gap-2">
+                                    {editingItemId === it.id ? (
+                                      <>
+                                        <button
+                                          className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
+                                          onClick={() => saveHoldingItem(it)}
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
+                                          onClick={cancelEditHoldingItem}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="text-zinc-900">
+                                          {(it.price * it.quantity).toLocaleString()}
+                                        </div>
+                                        <button
+                                          className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
+                                          onClick={() => startEditHoldingItem(it)}
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
+                                          onClick={() => deleteHoldingItem(it.id)}
+                                        >
+                                          Delete
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -902,12 +1040,42 @@ export default function PendingPage() {
                                 className="w-full rounded border px-2 py-1 text-sm"
                                 placeholder="Qty"
                               />
+                            </div>
+
+                            <div className="mt-2 space-y-1">
+                              <div className="text-xs font-medium text-zinc-600">Image</div>
                               <input
-                                value={iImageUrl}
-                                onChange={(e) => setIImageUrl(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Image URL (optional)"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) {
+                                    setIImageUrl(null);
+                                    return;
+                                  }
+                                  const reader = new FileReader();
+                                  reader.onload = () => {
+                                    if (typeof reader.result === "string") {
+                                      setIImageUrl(reader.result);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }}
+                                className="mt-1 text-xs"
                               />
+                              {iImageUrl && (
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">
+                                    Preview
+                                  </div>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={iImageUrl}
+                                    alt="Holding item preview"
+                                    className="mt-1 max-h-40 w-auto rounded border object-contain"
+                                  />
+                                </div>
+                              )}
                             </div>
                             <button
                               type="button"
