@@ -10,6 +10,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MerchantPreorderStatus {
+  ordered
+  pending_final_payment
+  fully_paid
+  received
+}
+
+enum HoldingOrderStatus {
+  holding
+  ready_to_ship
+  shipped
+  received
+}
+
 model Auction {
   id             Int       @id @default(autoincrement())
   itemName       String
@@ -81,4 +95,45 @@ model ImportDraft {
   parseStatus  String   @default("PARTIAL")
   rawPayload   String?
   createdAt    DateTime        @default(now())
+}
+
+model MerchantPreorderItem {
+  id           Int                    @id @default(autoincrement())
+  name         String
+  imageUrl     String?
+  sellerName   String
+  platform     String?
+  purchaseDate DateTime
+  amountPaid   Float?
+  status       MerchantPreorderStatus @default(ordered)
+  note         String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+}
+
+model HoldingOrderGroup {
+  id                Int               @id @default(autoincrement())
+  sellerName        String
+  platform          String?
+  purchaseDate      DateTime          @default(now())
+  durationDays      Int?
+  deadline          DateTime?
+  shippingThreshold Float?
+  status            HoldingOrderStatus @default(holding)
+  note              String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  items             HoldingOrderItem[]
+}
+
+model HoldingOrderItem {
+  id       Int              @id @default(autoincrement())
+  groupId  Int
+  name     String
+  imageUrl String?
+  price    Float
+  quantity Int              @default(1)
+
+  group    HoldingOrderGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
