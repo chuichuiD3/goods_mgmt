@@ -109,14 +109,19 @@ export default function PendingPage() {
   const [mNote, setMNote] = useState<string>("");
 
   // Holding group create form
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [gSeller, setGSeller] = useState("");
   const [gPlatform, setGPlatform] = useState("");
+  const [gPurchaseDate, setGPurchaseDate] = useState<string>(() =>
+    toDateInputValue(new Date().toISOString())
+  );
   const [gTimeMode, setGTimeMode] = useState<HoldingOrderTimeMode>("duration");
   const [gDurationPreset, setGDurationPreset] = useState<string>("90");
   const [gDurationCustom, setGDurationCustom] = useState<string>("");
   const [gFixedDate, setGFixedDate] = useState<string>("");
   const [gShippingThreshold, setGShippingThreshold] = useState<string>("");
   const [gNote, setGNote] = useState<string>("");
+  const [gStatus, setGStatus] = useState<HoldingOrderStatus>("holding");
 
   // Holding item create form (per expanded group)
   const [iName, setIName] = useState("");
@@ -233,29 +238,90 @@ export default function PendingPage() {
           ? null
           : fromDateInputValue(gFixedDate);
 
-    await fetch("/api/pending/holding-groups", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sellerName: gSeller,
-        platform: gPlatform.trim() === "" ? null : gPlatform.trim(),
-        timeMode: gTimeMode,
-        durationDays,
-        deadline: deadlineIso,
-        shippingThreshold:
-          gShippingThreshold.trim() === "" ? null : Number(gShippingThreshold),
-        note: gNote.trim() === "" ? null : gNote.trim(),
-      }),
-    });
+    const body = {
+      sellerName: gSeller,
+      platform: gPlatform.trim() === "" ? null : gPlatform.trim(),
+      purchaseDate: fromDateInputValue(gPurchaseDate),
+      timeMode: gTimeMode,
+      durationDays,
+      deadline: deadlineIso,
+      shippingThreshold:
+        gShippingThreshold.trim() === "" ? null : Number(gShippingThreshold),
+      note: gNote.trim() === "" ? null : gNote.trim(),
+      status: gStatus,
+    };
+
+    if (editingGroupId) {
+      await fetch(`/api/pending/holding-groups/${editingGroupId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } else {
+      await fetch("/api/pending/holding-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    }
+
+    setEditingGroupId(null);
     setGSeller("");
     setGPlatform("");
+    setGPurchaseDate(toDateInputValue(new Date().toISOString()));
     setGTimeMode("duration");
     setGDurationPreset("90");
     setGDurationCustom("");
     setGFixedDate("");
     setGShippingThreshold("");
     setGNote("");
+    setGStatus("holding");
     await loadHolding();
+  };
+
+  const startEditGroup = (g: HoldingOrderGroup) => {
+    setEditingGroupId(g.id);
+    setGSeller(g.sellerName);
+    setGPlatform(g.platform ?? "");
+    setGPurchaseDate(toDateInputValue(g.purchaseDate) || toDateInputValue(new Date().toISOString()));
+    setGTimeMode(g.timeMode);
+    setGShippingThreshold(g.shippingThreshold != null ? String(g.shippingThreshold) : "");
+    setGNote(g.note ?? "");
+    setGStatus(g.status);
+
+    if (g.timeMode === "duration") {
+      const d = g.durationDays ?? 90;
+      if (d === 30 || d === 90 || d === 180) {
+        setGDurationPreset(String(d));
+        setGDurationCustom("");
+      } else {
+        setGDurationPreset("custom");
+        setGDurationCustom(String(d));
+      }
+      setGFixedDate("");
+    } else if (g.timeMode === "fixed_date") {
+      setGFixedDate(toDateInputValue(g.deadline ?? g.computedDeadline));
+      setGDurationPreset("90");
+      setGDurationCustom("");
+    } else {
+      setGDurationPreset("90");
+      setGDurationCustom("");
+      setGFixedDate("");
+    }
+  };
+
+  const cancelEditGroup = () => {
+    setEditingGroupId(null);
+    setGSeller("");
+    setGPlatform("");
+    setGPurchaseDate(toDateInputValue(new Date().toISOString()));
+    setGTimeMode("duration");
+    setGDurationPreset("90");
+    setGDurationCustom("");
+    setGFixedDate("");
+    setGShippingThreshold("");
+    setGNote("");
+    setGStatus("holding");
   };
 
   const updateGroupStatus = async (groupId: number, status: HoldingOrderStatus) => {
@@ -692,7 +758,9 @@ export default function PendingPage() {
         ) : (
           <div className="mt-4">
             <div className="rounded border bg-white p-3 text-sm">
-              <div className="mb-2 text-sm font-semibold">Create holding group</div>
+              <div className="mb-2 text-sm font-semibold">
+                {editingGroupId ? "Edit holding group" : "Create holding group"}
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">Seller</label>
@@ -710,6 +778,15 @@ export default function PendingPage() {
                     onChange={(e) => setGPlatform(e.target.value)}
                     className="w-full rounded border px-2 py-1 text-sm"
                     placeholder="Optional"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Purchase date</label>
+                  <input
+                    type="date"
+                    value={gPurchaseDate}
+                    onChange={(e) => setGPurchaseDate(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -776,6 +853,19 @@ export default function PendingPage() {
                     placeholder="Optional"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Status</label>
+                  <select
+                    value={gStatus}
+                    onChange={(e) => setGStatus(e.target.value as HoldingOrderStatus)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  >
+                    <option value="holding">holding</option>
+                    <option value="ready_to_ship">ready_to_ship</option>
+                    <option value="shipped">shipped</option>
+                    <option value="received">received</option>
+                  </select>
+                </div>
                 <div className="space-y-1 sm:col-span-2">
                   <label className="block text-xs font-medium text-zinc-600">Note</label>
                   <input
@@ -786,14 +876,25 @@ export default function PendingPage() {
                   />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={createGroup}
-                disabled={gSeller.trim() === ""}
-                className="mt-3 rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-              >
-                Create group
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={createGroup}
+                  disabled={gSeller.trim() === ""}
+                  className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                >
+                  {editingGroupId ? "Save changes" : "Create group"}
+                </button>
+                {editingGroupId && (
+                  <button
+                    type="button"
+                    onClick={cancelEditGroup}
+                    className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
             {holdingLoading ? (
@@ -863,6 +964,12 @@ export default function PendingPage() {
                             <option value="shipped">shipped</option>
                             <option value="received">received</option>
                           </select>
+                          <button
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                            onClick={() => startEditGroup(g)}
+                          >
+                            Edit
+                          </button>
                           <button
                             className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
                             onClick={() =>
