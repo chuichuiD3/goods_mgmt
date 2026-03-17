@@ -9,6 +9,7 @@ type MerchantPreorderStatus =
   | "received";
 
 type HoldingOrderStatus = "holding" | "ready_to_ship" | "shipped" | "received";
+type HoldingOrderTimeMode = "duration" | "fixed_date" | "none";
 
 type MerchantPreorderItem = {
   id: number;
@@ -36,8 +37,10 @@ type HoldingOrderGroup = {
   sellerName: string;
   platform: string | null;
   purchaseDate: string;
+  timeMode: HoldingOrderTimeMode;
   durationDays: number | null;
   deadline: string | null;
+  computedDeadline: string | null;
   shippingThreshold: number | null;
   status: HoldingOrderStatus;
   note: string | null;
@@ -108,8 +111,10 @@ export default function PendingPage() {
   // Holding group create form
   const [gSeller, setGSeller] = useState("");
   const [gPlatform, setGPlatform] = useState("");
+  const [gTimeMode, setGTimeMode] = useState<HoldingOrderTimeMode>("duration");
   const [gDurationPreset, setGDurationPreset] = useState<string>("90");
   const [gDurationCustom, setGDurationCustom] = useState<string>("");
+  const [gFixedDate, setGFixedDate] = useState<string>("");
   const [gShippingThreshold, setGShippingThreshold] = useState<string>("");
   const [gNote, setGNote] = useState<string>("");
 
@@ -206,7 +211,7 @@ export default function PendingPage() {
 
   const createGroup = async () => {
     const durationDays =
-      gDurationPreset === "none"
+      gTimeMode !== "duration"
         ? null
         : gDurationPreset === "custom"
           ? gDurationCustom.trim() === ""
@@ -214,13 +219,22 @@ export default function PendingPage() {
             : Number(gDurationCustom)
           : Number(gDurationPreset);
 
+    const deadlineIso =
+      gTimeMode !== "fixed_date"
+        ? null
+        : gFixedDate.trim() === ""
+          ? null
+          : fromDateInputValue(gFixedDate);
+
     await fetch("/api/pending/holding-groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sellerName: gSeller,
         platform: gPlatform.trim() === "" ? null : gPlatform.trim(),
+        timeMode: gTimeMode,
         durationDays,
+        deadline: deadlineIso,
         shippingThreshold:
           gShippingThreshold.trim() === "" ? null : Number(gShippingThreshold),
         note: gNote.trim() === "" ? null : gNote.trim(),
@@ -228,8 +242,10 @@ export default function PendingPage() {
     });
     setGSeller("");
     setGPlatform("");
+    setGTimeMode("duration");
     setGDurationPreset("90");
     setGDurationCustom("");
+    setGFixedDate("");
     setGShippingThreshold("");
     setGNote("");
     await loadHolding();
@@ -647,20 +663,35 @@ export default function PendingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Duration</label>
+                  <label className="block text-xs font-medium text-zinc-600">Time mode</label>
                   <select
-                    value={gDurationPreset}
-                    onChange={(e) => setGDurationPreset(e.target.value)}
+                    value={gTimeMode}
+                    onChange={(e) => setGTimeMode(e.target.value as HoldingOrderTimeMode)}
                     className="w-full rounded border px-2 py-1 text-sm"
                   >
-                    <option value="30">1 month (30 days)</option>
-                    <option value="90">3 months (90 days)</option>
-                    <option value="180">6 months (180 days)</option>
-                    <option value="custom">Custom days</option>
-                    <option value="none">No deadline</option>
+                    <option value="duration">Duration-based</option>
+                    <option value="fixed_date">Fixed date</option>
+                    <option value="none">None</option>
                   </select>
                 </div>
-                {gDurationPreset === "custom" && (
+
+                {gTimeMode === "duration" && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-zinc-600">Duration</label>
+                    <select
+                      value={gDurationPreset}
+                      onChange={(e) => setGDurationPreset(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                    >
+                      <option value="30">1 month (30 days)</option>
+                      <option value="90">3 months (90 days)</option>
+                      <option value="180">6 months (180 days)</option>
+                      <option value="custom">Custom days</option>
+                    </select>
+                  </div>
+                )}
+
+                {gTimeMode === "duration" && gDurationPreset === "custom" && (
                   <div className="space-y-1">
                     <label className="block text-xs font-medium text-zinc-600">Custom days</label>
                     <input
@@ -670,6 +701,18 @@ export default function PendingPage() {
                       onChange={(e) => setGDurationCustom(e.target.value)}
                       className="w-full rounded border px-2 py-1 text-sm"
                       placeholder="e.g. 120"
+                    />
+                  </div>
+                )}
+
+                {gTimeMode === "fixed_date" && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-zinc-600">Deadline date</label>
+                    <input
+                      type="date"
+                      value={gFixedDate}
+                      onChange={(e) => setGFixedDate(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
                     />
                   </div>
                 )}
@@ -713,11 +756,11 @@ export default function PendingPage() {
                   const total = groupTotals.get(g.id) ?? 0;
                   const isExpanded = expandedGroupId === g.id;
                   const count = g.items.length;
-                  const cd = countdown(g.deadline, now);
+                  const cd = countdown(g.computedDeadline, now);
                   const soon =
-                    g.deadline &&
+                    g.computedDeadline &&
                     (() => {
-                      const t = new Date(g.deadline).getTime();
+                      const t = new Date(g.computedDeadline).getTime();
                       return !Number.isNaN(t) && t - now.getTime() <= 5 * 24 * 60 * 60 * 1000;
                     })();
 
@@ -737,11 +780,23 @@ export default function PendingPage() {
                               : ""}
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
-                            Deadline:{" "}
-                            {g.deadline ? toDateInputValue(g.deadline) : "—"} ·{" "}
-                            <span className={soon ? "font-semibold text-red-600" : ""}>
-                              {cd}
-                            </span>
+                            {g.timeMode === "none" ? null : g.timeMode === "duration" ? (
+                              <>
+                                Holding: {g.durationDays ?? "—"} days · Deadline:{" "}
+                                {g.computedDeadline ? toDateInputValue(g.computedDeadline) : "—"} ·{" "}
+                                <span className={soon ? "font-semibold text-red-600" : ""}>
+                                  {cd}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                Deadline:{" "}
+                                {g.computedDeadline ? toDateInputValue(g.computedDeadline) : "—"} ·{" "}
+                                <span className={soon ? "font-semibold text-red-600" : ""}>
+                                  {cd}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 

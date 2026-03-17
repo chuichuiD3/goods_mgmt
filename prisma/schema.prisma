@@ -24,6 +24,12 @@ enum HoldingOrderStatus {
   received
 }
 
+enum HoldingOrderTimeMode {
+  duration
+  fixed_date
+  none
+}
+
 model Auction {
   id             Int       @id @default(autoincrement())
   itemName       String
@@ -116,8 +122,10 @@ model HoldingOrderGroup {
   sellerName        String
   platform          String?
   purchaseDate      DateTime          @default(now())
+  timeMode          HoldingOrderTimeMode @default(duration)
   durationDays      Int?
   deadline          DateTime?
+  computedDeadline  DateTime?
   shippingThreshold Float?
   status            HoldingOrderStatus @default(holding)
   note              String?

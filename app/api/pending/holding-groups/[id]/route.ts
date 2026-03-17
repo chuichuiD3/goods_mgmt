@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { HoldingOrderStatus } from "@prisma/client";
+import { HoldingOrderStatus, HoldingOrderTimeMode } from "@prisma/client";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function computeDeadline(purchaseDate: Date, durationDays: number | null): Date | null {
-  if (!durationDays || !Number.isFinite(durationDays) || durationDays <= 0) return null;
+function computeFromDuration(purchaseDate: Date, durationDays: number): Date {
   const ms = durationDays * 24 * 60 * 60 * 1000;
   return new Date(purchaseDate.getTime() + ms);
 }
 
 function isHoldingStatus(v: unknown): v is HoldingOrderStatus {
   return typeof v === "string" && (Object.values(HoldingOrderStatus) as string[]).includes(v);
+}
+
+function isTimeMode(v: unknown): v is HoldingOrderTimeMode {
+  return (
+    typeof v === "string" &&
+    (Object.values(HoldingOrderTimeMode) as string[]).includes(v)
+  );
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
@@ -27,10 +33,34 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 
   const purchaseDate = body.purchaseDate ? new Date(body.purchaseDate) : existing.purchaseDate;
+
+  const timeMode: HoldingOrderTimeMode = isTimeMode(body.timeMode)
+    ? body.timeMode
+    : existing.timeMode;
+
   const durationDaysRaw =
-    body.durationDays === undefined ? existing.durationDays : (body.durationDays === null || body.durationDays === "" ? null : Number(body.durationDays));
+    body.durationDays === undefined
+      ? existing.durationDays
+      : body.durationDays === null || body.durationDays === ""
+        ? null
+        : Number(body.durationDays);
   const durationDays = durationDaysRaw === null ? null : Math.trunc(durationDaysRaw);
-  const deadline = computeDeadline(purchaseDate, durationDays);
+
+  const deadlineRaw =
+    body.deadline === undefined
+      ? existing.deadline
+      : body.deadline === null || body.deadline === ""
+        ? null
+        : new Date(body.deadline);
+
+  const deadline = deadlineRaw ?? null;
+
+  let computedDeadline: Date | null = null;
+  if (timeMode === "duration" && durationDays && durationDays > 0) {
+    computedDeadline = computeFromDuration(purchaseDate, durationDays);
+  } else if (timeMode === "fixed_date" && deadline) {
+    computedDeadline = deadline;
+  }
 
   const updated = await prisma.holdingOrderGroup.update({
     where: { id },
@@ -38,8 +68,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       sellerName: body.sellerName ?? undefined,
       platform: body.platform ?? undefined,
       purchaseDate,
-      durationDays,
-      deadline,
+      timeMode,
+      durationDays: timeMode === "duration" ? durationDays : null,
+      deadline: timeMode === "fixed_date" ? deadline : null,
+      computedDeadline,
       shippingThreshold:
         body.shippingThreshold === undefined
           ? undefined

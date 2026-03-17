@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { HoldingOrderStatus } from "@prisma/client";
+import { HoldingOrderStatus, HoldingOrderTimeMode } from "@prisma/client";
 
-function computeDeadline(purchaseDate: Date, durationDays: number | null): Date | null {
-  if (!durationDays || !Number.isFinite(durationDays) || durationDays <= 0) return null;
+function computeFromDuration(purchaseDate: Date, durationDays: number): Date {
   const ms = durationDays * 24 * 60 * 60 * 1000;
   return new Date(purchaseDate.getTime() + ms);
+}
+
+function isTimeMode(v: unknown): v is HoldingOrderTimeMode {
+  return (
+    typeof v === "string" &&
+    (Object.values(HoldingOrderTimeMode) as string[]).includes(v)
+  );
 }
 
 export async function GET() {
@@ -24,11 +30,27 @@ export async function POST(request: NextRequest) {
   }
 
   const purchaseDate = body.purchaseDate ? new Date(body.purchaseDate) : new Date();
-  const durationDays =
+  const timeMode: HoldingOrderTimeMode = isTimeMode(body.timeMode)
+    ? body.timeMode
+    : "duration";
+
+  const durationDaysRaw =
     body.durationDays === undefined || body.durationDays === null || body.durationDays === ""
       ? null
       : Number(body.durationDays);
-  const deadline = computeDeadline(purchaseDate, durationDays);
+  const durationDays = durationDaysRaw === null ? null : Math.trunc(durationDaysRaw);
+
+  const deadline =
+    body.deadline === undefined || body.deadline === null || body.deadline === ""
+      ? null
+      : new Date(body.deadline);
+
+  let computedDeadline: Date | null = null;
+  if (timeMode === "duration" && durationDays && durationDays > 0) {
+    computedDeadline = computeFromDuration(purchaseDate, durationDays);
+  } else if (timeMode === "fixed_date" && deadline) {
+    computedDeadline = deadline;
+  }
 
   const status: HoldingOrderStatus =
     body.status && Object.values(HoldingOrderStatus).includes(body.status)
@@ -40,8 +62,10 @@ export async function POST(request: NextRequest) {
       sellerName: body.sellerName,
       platform: body.platform ?? null,
       purchaseDate,
-      durationDays: durationDays === null ? null : Math.trunc(durationDays),
-      deadline,
+      timeMode,
+      durationDays: timeMode === "duration" ? durationDays : null,
+      deadline: timeMode === "fixed_date" ? deadline : null,
+      computedDeadline,
       shippingThreshold:
         body.shippingThreshold === undefined || body.shippingThreshold === null || body.shippingThreshold === ""
           ? null
