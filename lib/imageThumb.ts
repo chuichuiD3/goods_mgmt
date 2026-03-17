@@ -13,7 +13,8 @@ export function classifyImageUrl(
 }
 
 function parseDataUrlBase64(imageUrl: string): { mime: string; b64: string } | null {
-  const match = /^data:([^;]+);base64,(.*)$/s.exec(imageUrl);
+  // Avoid dotAll (/s) for older TS targets (e.g. es2017).
+  const match = /^data:([^;]+);base64,([\s\S]*)$/.exec(imageUrl);
   if (!match) return null;
   return { mime: match[1], b64: match[2] };
 }
