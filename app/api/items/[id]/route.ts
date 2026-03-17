@@ -26,33 +26,44 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const price = Number(body.price ?? 0);
   const quantity = Number(body.quantity ?? 1);
   const totalAmount = body.totalAmount ?? price * quantity;
-  const imageUrl: string | null = body.imageUrl ?? null;
-  const imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
+
+  const updateData: Record<string, unknown> = {
+    itemName: body.itemName,
+    series: body.series ?? null,
+    character: body.character ?? null,
+    category: body.category ?? null,
+    platform: body.platform ?? null,
+    shop: body.shop ?? null,
+    price,
+    quantity,
+    totalAmount,
+    currency: body.currency ?? 'JPY',
+    status: body.status ?? 'PENDING_PAYMENT',
+    orderDate: body.orderDate ? new Date(body.orderDate) : null,
+    paymentDeadline: body.paymentDeadline ? new Date(body.paymentDeadline) : null,
+    paidAt: body.paidAt ? new Date(body.paidAt) : null,
+    isPresale: body.isPresale ?? false,
+    sourceType: body.sourceType ?? 'DIRECT_PURCHASE',
+    sourceOrderId: body.sourceOrderId ?? null,
+    notes: body.notes ?? null,
+  };
+
+  // Important: Collection edit currently doesn't preload `imageUrl` (list API is thumbnail-only).
+  // To avoid accidentally wiping images/thumbnails, treat empty string/undefined as "no change".
+  if (Object.prototype.hasOwnProperty.call(body, 'imageUrl')) {
+    if (body.imageUrl === null) {
+      updateData.imageUrl = null;
+      updateData.imageThumbUrl = null;
+    } else if (typeof body.imageUrl === 'string' && body.imageUrl.trim() !== '') {
+      const imageUrl: string = body.imageUrl;
+      updateData.imageUrl = imageUrl;
+      updateData.imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
+    }
+  }
 
   const item = await prisma.item.update({
     where: { id },
-    data: {
-      itemName: body.itemName,
-      series: body.series ?? null,
-      character: body.character ?? null,
-      category: body.category ?? null,
-      platform: body.platform ?? null,
-      shop: body.shop ?? null,
-      price,
-      quantity,
-      totalAmount,
-      currency: body.currency ?? 'JPY',
-      status: body.status ?? 'PENDING_PAYMENT',
-      orderDate: body.orderDate ? new Date(body.orderDate) : null,
-      paymentDeadline: body.paymentDeadline ? new Date(body.paymentDeadline) : null,
-      paidAt: body.paidAt ? new Date(body.paidAt) : null,
-      isPresale: body.isPresale ?? false,
-      sourceType: body.sourceType ?? 'DIRECT_PURCHASE',
-      sourceOrderId: body.sourceOrderId ?? null,
-      imageUrl,
-      imageThumbUrl,
-      notes: body.notes ?? null,
-    },
+    data: updateData,
   });
 
   return NextResponse.json(item);
