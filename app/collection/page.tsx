@@ -14,6 +14,7 @@ type Item = {
   quantity: number;
   totalAmount: number;
   status: string;
+  imageThumbUrl?: string | null;
 };
 
 export default function CollectionPage() {
@@ -133,6 +134,7 @@ export default function CollectionPage() {
               <table className="min-w-full border text-sm">
                 <thead className="bg-zinc-100 text-xs">
                   <tr>
+                    <th className="border px-2 py-1 text-left">Image</th>
                     <th className="border px-2 py-1 text-left">Item</th>
                     <th className="border px-2 py-1 text-left">Series</th>
                     <th className="border px-2 py-1 text-left">Character</th>
@@ -145,6 +147,23 @@ export default function CollectionPage() {
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id}>
+                      <td className="border px-2 py-1">
+                        <div className="h-10 w-10 overflow-hidden rounded border bg-zinc-100">
+                          {item.imageThumbUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.imageThumbUrl}
+                              alt={item.itemName}
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                              —
+                            </div>
+                          )}
+                        </div>
+                      </td>
                       <td className="border px-2 py-1">{item.itemName}</td>
                       <td className="border px-2 py-1">
                         {item.series ?? "-"}
