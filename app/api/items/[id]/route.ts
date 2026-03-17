@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { makeThumbnailDataUrl } from '@/lib/imageThumb';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -25,6 +26,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const price = Number(body.price ?? 0);
   const quantity = Number(body.quantity ?? 1);
   const totalAmount = body.totalAmount ?? price * quantity;
+  const imageUrl: string | null = body.imageUrl ?? null;
+  const imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
 
   const item = await prisma.item.update({
     where: { id },
@@ -46,7 +49,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       isPresale: body.isPresale ?? false,
       sourceType: body.sourceType ?? 'DIRECT_PURCHASE',
       sourceOrderId: body.sourceOrderId ?? null,
-      imageUrl: body.imageUrl ?? null,
+      imageUrl,
+      imageThumbUrl,
       notes: body.notes ?? null,
     },
   });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { makeThumbnailDataUrl } from '@/lib/imageThumb';
 
 export async function GET() {
   const items = await prisma.item.findMany({
@@ -15,6 +16,7 @@ export async function GET() {
       quantity: true,
       totalAmount: true,
       status: true,
+      imageThumbUrl: true,
     },
   });
   return NextResponse.json(items);
@@ -26,6 +28,8 @@ export async function POST(request: Request) {
   const price = Number(body.price ?? 0);
   const quantity = Number(body.quantity ?? 1);
   const totalAmount = body.totalAmount ?? price * quantity;
+  const imageUrl: string | null = body.imageUrl ?? null;
+  const imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
 
   const item = await prisma.item.create({
     data: {
@@ -46,7 +50,8 @@ export async function POST(request: Request) {
       isPresale: body.isPresale ?? false,
       sourceType: body.sourceType ?? 'DIRECT_PURCHASE',
       sourceOrderId: body.sourceOrderId ?? null,
-      imageUrl: body.imageUrl ?? null,
+      imageUrl,
+      imageThumbUrl,
       notes: body.notes ?? null,
     },
   });
