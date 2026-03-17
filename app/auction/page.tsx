@@ -7,25 +7,29 @@ import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
 type Auction = {
   id: number;
   itemName: string;
-  series: string | null;
-  character: string | null;
-  category: string | null;
   platform: string | null;
   auctionUrl: string | null;
   currentPrice: number | null;
-  myMaxBid: number | null;
   auctionEndTime: string | null;
-  imageUrl: string | null;
+  imageThumbUrl: string | null;
   status: string;
+};
+
+type FullAuction = Auction & {
+  series: string | null;
+  character: string | null;
+  category: string | null;
+  myMaxBid: number | null;
+  imageUrl: string | null;
   notes: string | null;
 };
 
 export default function AuctionPage() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
+  const [editingAuction, setEditingAuction] = useState<FullAuction | null>(null);
   const [creatingItemFromAuction, setCreatingItemFromAuction] =
-    useState<Auction | null>(null);
+    useState<FullAuction | null>(null);
   const [activeTab, setActiveTab] = useState<"ONGOING" | "ENDED">("ONGOING");
   const [now, setNow] = useState<Date>(() => new Date());
 
@@ -90,14 +94,24 @@ export default function AuctionPage() {
     await loadAuctions();
   };
 
+  const handleEdit = async (auctionId: number) => {
+    const res = await fetch(`/api/auctions/${auctionId}`);
+    if (!res.ok) return;
+    const full: FullAuction = await res.json();
+    setEditingAuction(full);
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this auction?")) return;
     await fetch(`/api/auctions/${id}`, { method: "DELETE" });
     await loadAuctions();
   };
 
-  const handleConvertToItem = (auction: Auction) => {
-    setCreatingItemFromAuction(auction);
+  const handleConvertToItem = async (auctionId: number) => {
+    const res = await fetch(`/api/auctions/${auctionId}`);
+    if (!res.ok) return;
+    const full: FullAuction = await res.json();
+    setCreatingItemFromAuction(full);
   };
 
   const createItemFromAuction = async (values: ItemFormValues) => {
@@ -309,10 +323,10 @@ export default function AuctionPage() {
                     className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
                   >
                     <div className="relative h-40 w-full bg-zinc-100">
-                      {auction.imageUrl ? (
+                      {auction.imageThumbUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={auction.imageUrl}
+                          src={auction.imageThumbUrl}
                           alt={auction.itemName}
                           loading="lazy"
                           className="h-full w-full object-cover"
@@ -384,7 +398,7 @@ export default function AuctionPage() {
                         </span>
                         <div className="flex flex-wrap gap-1 text-[11px]">
                           <button
-                            onClick={() => setEditingAuction(auction)}
+                            onClick={() => handleEdit(auction.id)}
                             className="rounded border px-2 py-0.5 hover:bg-zinc-100"
                           >
                             Edit
@@ -396,7 +410,7 @@ export default function AuctionPage() {
                             Delete
                           </button>
                           <button
-                            onClick={() => handleConvertToItem(auction)}
+                            onClick={() => handleConvertToItem(auction.id)}
                             className="rounded border px-2 py-0.5 hover:bg-zinc-100"
                           >
                             Mark as won → Item

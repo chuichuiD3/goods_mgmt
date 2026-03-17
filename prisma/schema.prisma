@@ -42,6 +42,7 @@ model Auction {
   myMaxBid       Float?
   auctionEndTime DateTime?
   imageUrl       String?
+  imageThumbUrl  String?
   status         String    @default("WATCHING")
   notes          String?
   createdAt      DateTime  @default(now())
