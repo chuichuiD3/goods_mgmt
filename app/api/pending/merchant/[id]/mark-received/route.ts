@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { makeThumbnailDataUrl } from "@/lib/imageThumb";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -14,27 +15,33 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Create a Collection Item using existing Items API schema/logic (thumbnail generation happens there).
-  await prisma.item.create({
-    data: {
-      itemName: preorder.name,
-      platform: preorder.platform ?? null,
-      shop: preorder.sellerName,
-      price: Number(preorder.amountPaid ?? 0),
-      quantity: 1,
-      totalAmount: Number(preorder.amountPaid ?? 0),
-      currency: "JPY",
-      status: "PENDING_PAYMENT",
-      orderDate: preorder.purchaseDate,
-      sourceType: "DIRECT_PURCHASE",
-      imageUrl: preorder.imageUrl ?? null,
-      notes: preorder.note ?? null,
-    },
-  });
+  const imageUrl = preorder.imageUrl ?? null;
+  const imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
 
-  const updated = await prisma.merchantPreorderItem.update({
-    where: { id },
-    data: { status: "received" },
+  // Conservative conflict handling: only flip preorder status after item creation succeeds.
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.item.create({
+      data: {
+        itemName: preorder.name,
+        platform: preorder.platform ?? null,
+        shop: preorder.sellerName,
+        price: Number(preorder.amountPaid ?? 0),
+        quantity: 1,
+        totalAmount: Number(preorder.amountPaid ?? 0),
+        currency: "JPY",
+        status: "OWNED",
+        orderDate: preorder.purchaseDate,
+        sourceType: "DIRECT_PURCHASE",
+        imageUrl,
+        imageThumbUrl,
+        notes: preorder.note ?? null,
+      },
+    });
+
+    return await tx.merchantPreorderItem.update({
+      where: { id },
+      data: { status: "received" },
+    });
   });
 
   return NextResponse.json(updated);

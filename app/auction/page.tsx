@@ -115,23 +115,38 @@ export default function AuctionPage() {
   };
 
   const createItemFromAuction = async (values: ItemFormValues) => {
-    await fetch("/api/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...values,
-        sourceType: "AUCTION",
-      }),
-    });
-    if (creatingItemFromAuction) {
-      await fetch(`/api/auctions/${creatingItemFromAuction.id}`, {
-        method: "PUT",
+    try {
+      const res = await fetch("/api/items", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "WON" }),
+        body: JSON.stringify({
+          ...values,
+          sourceType: "AUCTION",
+        }),
       });
+
+      if (!res.ok) {
+        alert("Failed to create Collection item. Auction status was not changed.");
+        return;
+      }
+
+      if (creatingItemFromAuction) {
+        const res2 = await fetch(`/api/auctions/${creatingItemFromAuction.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "WON" }),
+        });
+        if (!res2.ok) {
+          alert("Item created, but failed to update auction status. Please retry.");
+          return;
+        }
+      }
+
+      setCreatingItemFromAuction(null);
+      await loadAuctions();
+    } catch {
+      alert("Failed to create Collection item. Auction status was not changed.");
     }
-    setCreatingItemFromAuction(null);
-    await loadAuctions();
   };
 
   return (

@@ -325,6 +325,18 @@ export default function PendingPage() {
   };
 
   const updateGroupStatus = async (groupId: number, status: HoldingOrderStatus) => {
+    if (status === "received") {
+      const res = await fetch(
+        `/api/pending/holding-groups/${groupId}/mark-received`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        alert("Failed to create Collection items. Group status was not changed.");
+      }
+      await loadHolding();
+      return;
+    }
+
     await fetch(`/api/pending/holding-groups/${groupId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
