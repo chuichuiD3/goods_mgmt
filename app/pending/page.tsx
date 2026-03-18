@@ -24,7 +24,6 @@ type MerchantPreorderLineItem = {
   finalAmount: number | null;
   owned: boolean;
   expectedReleaseAt: string | null;
-  expectedShipAt: string | null;
   received: boolean;
 };
 
@@ -144,7 +143,6 @@ export default function PendingPage() {
   const [mItemFinalAmount, setMItemFinalAmount] = useState<string>("");
   const [mItemOwned, setMItemOwned] = useState<boolean>(false);
   const [mItemExpectedReleaseAt, setMItemExpectedReleaseAt] = useState<string>("");
-  const [mItemExpectedShipAt, setMItemExpectedShipAt] = useState<string>("");
 
   // Merchant add line to expanded group
   const [newLineTitle, setNewLineTitle] = useState("");
@@ -162,7 +160,6 @@ export default function PendingPage() {
   const [newLineFinalAmount, setNewLineFinalAmount] = useState<string>("");
   const [newLineOwned, setNewLineOwned] = useState<boolean>(false);
   const [newLineExpectedReleaseAt, setNewLineExpectedReleaseAt] = useState<string>("");
-  const [newLineExpectedShipAt, setNewLineExpectedShipAt] = useState<string>("");
 
   // Merchant line item edit (single line at a time)
   const [editingMerchantLineId, setEditingMerchantLineId] = useState<number | null>(
@@ -183,7 +180,6 @@ export default function PendingPage() {
   const [eLineFinalAmount, setELineFinalAmount] = useState<string>("");
   const [eLineOwned, setELineOwned] = useState<boolean>(false);
   const [eLineExpectedReleaseAt, setELineExpectedReleaseAt] = useState<string>("");
-  const [eLineExpectedShipAt, setELineExpectedShipAt] = useState<string>("");
 
   // Holding group create/edit form
   const [editingHoldingGroupId, setEditingHoldingGroupId] = useState<number | null>(
@@ -318,10 +314,6 @@ export default function PendingPage() {
           mItemExpectedReleaseAt.trim() === ""
             ? null
             : fromDateInputValue(mItemExpectedReleaseAt),
-        expectedShipAt:
-          mItemExpectedShipAt.trim() === ""
-            ? null
-            : fromDateInputValue(mItemExpectedShipAt),
       }),
     });
 
@@ -349,7 +341,6 @@ export default function PendingPage() {
     setMItemFinalAmount("");
     setMItemOwned(false);
     setMItemExpectedReleaseAt("");
-    setMItemExpectedShipAt("");
 
     await loadMerchant();
   };
@@ -374,7 +365,6 @@ export default function PendingPage() {
     setMItemFinalAmount("");
     setMItemOwned(false);
     setMItemExpectedReleaseAt("");
-    setMItemExpectedShipAt("");
   };
 
   const startEditMerchantGroup = (g: MerchantPreorderGroup) => {
@@ -482,10 +472,7 @@ export default function PendingPage() {
           newLineExpectedReleaseAt.trim() === ""
             ? null
             : fromDateInputValue(newLineExpectedReleaseAt),
-        expectedShipAt:
-          newLineExpectedShipAt.trim() === ""
-            ? null
-            : fromDateInputValue(newLineExpectedShipAt),
+        // expectedShipAt intentionally omitted (MVP)
       }),
     });
 
@@ -507,7 +494,6 @@ export default function PendingPage() {
     setNewLineFinalAmount("");
     setNewLineOwned(false);
     setNewLineExpectedReleaseAt("");
-    setNewLineExpectedShipAt("");
     await loadMerchant();
   };
 
@@ -526,7 +512,6 @@ export default function PendingPage() {
     setELineFinalAmount(it.finalAmount != null ? String(it.finalAmount) : "");
     setELineOwned(Boolean(it.owned));
     setELineExpectedReleaseAt(toDateInputValue(it.expectedReleaseAt));
-    setELineExpectedShipAt(toDateInputValue(it.expectedShipAt));
   };
 
   const cancelEditMerchantLine = () => {
@@ -544,7 +529,6 @@ export default function PendingPage() {
     setELineFinalAmount("");
     setELineOwned(false);
     setELineExpectedReleaseAt("");
-    setELineExpectedShipAt("");
   };
 
   const saveMerchantLine = async (id: number) => {
@@ -573,8 +557,7 @@ export default function PendingPage() {
           eLineExpectedReleaseAt.trim() === ""
             ? null
             : fromDateInputValue(eLineExpectedReleaseAt),
-        expectedShipAt:
-          eLineExpectedShipAt.trim() === "" ? null : fromDateInputValue(eLineExpectedShipAt),
+        // expectedShipAt intentionally omitted (MVP)
       }),
     });
     if (!res.ok) {
@@ -829,7 +812,6 @@ export default function PendingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Purchase date</label>
                   <input
                     type="date"
                     value={mPurchaseDate}
@@ -999,17 +981,6 @@ export default function PendingPage() {
                         className="w-full rounded border px-2 py-1 text-sm"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Expected ship (optional)
-                      </label>
-                      <input
-                        type="date"
-                        value={mItemExpectedShipAt}
-                        onChange={(e) => setMItemExpectedShipAt(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    </div>
                     <div className="space-y-1 sm:col-span-2">
                       <label className="block text-xs font-medium text-zinc-600">
                         Image URL (optional)
@@ -1132,7 +1103,6 @@ export default function PendingPage() {
                               setNewLineFinalAmount("");
                               setNewLineOwned(false);
                               setNewLineExpectedReleaseAt("");
-                              setNewLineExpectedShipAt("");
                             }}
                           >
                             {expanded ? "Hide" : "View"}
@@ -1289,15 +1259,6 @@ export default function PendingPage() {
                                               className="w-full rounded border px-2 py-1 text-sm"
                                               placeholder="Expected release"
                                             />
-                                            <input
-                                              type="date"
-                                              value={eLineExpectedShipAt}
-                                              onChange={(e) =>
-                                                setELineExpectedShipAt(e.target.value)
-                                              }
-                                              className="w-full rounded border px-2 py-1 text-sm"
-                                              placeholder="Expected ship"
-                                            />
                                           </div>
 
                                           <input
@@ -1341,9 +1302,6 @@ export default function PendingPage() {
                                               ? ` · Release: ${toDateInputValue(
                                                   it.expectedReleaseAt
                                                 )}`
-                                              : ""}
-                                            {it.expectedShipAt
-                                              ? ` · Ship: ${toDateInputValue(it.expectedShipAt)}`
                                               : ""}
                                           </div>
                                           {it.notes ? (
@@ -1482,13 +1440,6 @@ export default function PendingPage() {
                                 onChange={(e) => setNewLineExpectedReleaseAt(e.target.value)}
                                 className="w-full rounded border px-2 py-1 text-sm"
                                 placeholder="Expected release"
-                              />
-                              <input
-                                type="date"
-                                value={newLineExpectedShipAt}
-                                onChange={(e) => setNewLineExpectedShipAt(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Expected ship"
                               />
                             </div>
                             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
