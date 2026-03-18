@@ -23,7 +23,7 @@ type MerchantPreorderLineItem = {
   finalPaidAt: string | null;
   finalAmount: number | null;
   owned: boolean;
-  expectedReleaseAt: string | null;
+  expectedReleaseWindow: string | null;
   received: boolean;
 };
 
@@ -142,7 +142,7 @@ export default function PendingPage() {
   const [mItemFinalPaidAt, setMItemFinalPaidAt] = useState<string>("");
   const [mItemFinalAmount, setMItemFinalAmount] = useState<string>("");
   const [mItemOwned, setMItemOwned] = useState<boolean>(false);
-  const [mItemExpectedReleaseAt, setMItemExpectedReleaseAt] = useState<string>("");
+  const [mItemExpectedReleaseWindow, setMItemExpectedReleaseWindow] = useState<string>("");
 
   // Merchant add line to expanded group
   const [newLineTitle, setNewLineTitle] = useState("");
@@ -159,7 +159,7 @@ export default function PendingPage() {
   const [newLineFinalPaidAt, setNewLineFinalPaidAt] = useState<string>("");
   const [newLineFinalAmount, setNewLineFinalAmount] = useState<string>("");
   const [newLineOwned, setNewLineOwned] = useState<boolean>(false);
-  const [newLineExpectedReleaseAt, setNewLineExpectedReleaseAt] = useState<string>("");
+  const [newLineExpectedReleaseWindow, setNewLineExpectedReleaseWindow] = useState<string>("");
 
   // Merchant line item edit (single line at a time)
   const [editingMerchantLineId, setEditingMerchantLineId] = useState<number | null>(
@@ -179,7 +179,7 @@ export default function PendingPage() {
   const [eLineFinalPaidAt, setELineFinalPaidAt] = useState<string>("");
   const [eLineFinalAmount, setELineFinalAmount] = useState<string>("");
   const [eLineOwned, setELineOwned] = useState<boolean>(false);
-  const [eLineExpectedReleaseAt, setELineExpectedReleaseAt] = useState<string>("");
+  const [eLineExpectedReleaseWindow, setELineExpectedReleaseWindow] = useState<string>("");
 
   // Holding group create/edit form
   const [editingHoldingGroupId, setEditingHoldingGroupId] = useState<number | null>(
@@ -310,10 +310,10 @@ export default function PendingPage() {
         finalAmount:
           mItemFinalAmount.trim() === "" ? null : Number(mItemFinalAmount),
         owned: mItemOwned,
-        expectedReleaseAt:
-          mItemExpectedReleaseAt.trim() === ""
+        expectedReleaseWindow:
+          mItemExpectedReleaseWindow.trim() === ""
             ? null
-            : fromDateInputValue(mItemExpectedReleaseAt),
+            : mItemExpectedReleaseWindow.trim(),
       }),
     });
 
@@ -340,7 +340,7 @@ export default function PendingPage() {
     setMItemFinalPaidAt("");
     setMItemFinalAmount("");
     setMItemOwned(false);
-    setMItemExpectedReleaseAt("");
+    setMItemExpectedReleaseWindow("");
 
     await loadMerchant();
   };
@@ -364,7 +364,7 @@ export default function PendingPage() {
     setMItemFinalPaidAt("");
     setMItemFinalAmount("");
     setMItemOwned(false);
-    setMItemExpectedReleaseAt("");
+    setMItemExpectedReleaseWindow("");
   };
 
   const startEditMerchantGroup = (g: MerchantPreorderGroup) => {
@@ -468,10 +468,10 @@ export default function PendingPage() {
         finalAmount:
           newLineFinalAmount.trim() === "" ? null : Number(newLineFinalAmount),
         owned: newLineOwned,
-        expectedReleaseAt:
-          newLineExpectedReleaseAt.trim() === ""
+        expectedReleaseWindow:
+          newLineExpectedReleaseWindow.trim() === ""
             ? null
-            : fromDateInputValue(newLineExpectedReleaseAt),
+            : newLineExpectedReleaseWindow.trim(),
         // expectedShipAt intentionally omitted (MVP)
       }),
     });
@@ -493,7 +493,7 @@ export default function PendingPage() {
     setNewLineFinalPaidAt("");
     setNewLineFinalAmount("");
     setNewLineOwned(false);
-    setNewLineExpectedReleaseAt("");
+    setNewLineExpectedReleaseWindow("");
     await loadMerchant();
   };
 
@@ -511,7 +511,7 @@ export default function PendingPage() {
     setELineFinalPaidAt(toDateInputValue(it.finalPaidAt));
     setELineFinalAmount(it.finalAmount != null ? String(it.finalAmount) : "");
     setELineOwned(Boolean(it.owned));
-    setELineExpectedReleaseAt(toDateInputValue(it.expectedReleaseAt));
+    setELineExpectedReleaseWindow(it.expectedReleaseWindow ?? "");
   };
 
   const cancelEditMerchantLine = () => {
@@ -528,7 +528,7 @@ export default function PendingPage() {
     setELineFinalPaidAt("");
     setELineFinalAmount("");
     setELineOwned(false);
-    setELineExpectedReleaseAt("");
+    setELineExpectedReleaseWindow("");
   };
 
   const saveMerchantLine = async (id: number) => {
@@ -553,10 +553,10 @@ export default function PendingPage() {
         finalAmount:
           eLineFinalAmount.trim() === "" ? null : Number(eLineFinalAmount),
         owned: eLineOwned,
-        expectedReleaseAt:
-          eLineExpectedReleaseAt.trim() === ""
+        expectedReleaseWindow:
+          eLineExpectedReleaseWindow.trim() === ""
             ? null
-            : fromDateInputValue(eLineExpectedReleaseAt),
+            : eLineExpectedReleaseWindow.trim(),
         // expectedShipAt intentionally omitted (MVP)
       }),
     });
@@ -972,13 +972,13 @@ export default function PendingPage() {
                     )}
                     <div className="space-y-1">
                       <label className="block text-xs font-medium text-zinc-600">
-                        Expected release (optional)
+                        Expected release window (optional)
                       </label>
                       <input
-                        type="date"
-                        value={mItemExpectedReleaseAt}
-                        onChange={(e) => setMItemExpectedReleaseAt(e.target.value)}
+                        value={mItemExpectedReleaseWindow}
+                        onChange={(e) => setMItemExpectedReleaseWindow(e.target.value)}
                         className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="e.g. 2026-07, 2026-07 to 2026-08, July–August 2026"
                       />
                     </div>
                     <div className="space-y-1 sm:col-span-2">
@@ -1102,7 +1102,7 @@ export default function PendingPage() {
                               setNewLineFinalPaidAt("");
                               setNewLineFinalAmount("");
                               setNewLineOwned(false);
-                              setNewLineExpectedReleaseAt("");
+                              setNewLineExpectedReleaseWindow("");
                             }}
                           >
                             {expanded ? "Hide" : "View"}
@@ -1251,13 +1251,12 @@ export default function PendingPage() {
 
                                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                             <input
-                                              type="date"
-                                              value={eLineExpectedReleaseAt}
+                                              value={eLineExpectedReleaseWindow}
                                               onChange={(e) =>
-                                                setELineExpectedReleaseAt(e.target.value)
+                                                setELineExpectedReleaseWindow(e.target.value)
                                               }
                                               className="w-full rounded border px-2 py-1 text-sm"
-                                              placeholder="Expected release"
+                                              placeholder="Expected release window (e.g. 2026-07 to 2026-08)"
                                             />
                                           </div>
 
@@ -1298,10 +1297,8 @@ export default function PendingPage() {
                                             {it.subtype === "deposit_presale"
                                               ? `Deposit · Owned: ${it.owned ? "Yes" : "No"}`
                                               : `Full payment`}
-                                            {it.expectedReleaseAt
-                                              ? ` · Release: ${toDateInputValue(
-                                                  it.expectedReleaseAt
-                                                )}`
+                                            {it.expectedReleaseWindow
+                                              ? ` · Release: ${it.expectedReleaseWindow}`
                                               : ""}
                                           </div>
                                           {it.notes ? (
@@ -1435,11 +1432,12 @@ export default function PendingPage() {
                             )}
                             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                               <input
-                                type="date"
-                                value={newLineExpectedReleaseAt}
-                                onChange={(e) => setNewLineExpectedReleaseAt(e.target.value)}
+                                value={newLineExpectedReleaseWindow}
+                                onChange={(e) =>
+                                  setNewLineExpectedReleaseWindow(e.target.value)
+                                }
                                 className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Expected release"
+                                placeholder="Expected release window (e.g. 2026-07, 2026-07 to 2026-08)"
                               />
                             </div>
                             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">

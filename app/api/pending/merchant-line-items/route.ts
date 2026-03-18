@@ -46,9 +46,10 @@ export async function POST(request: NextRequest) {
           ? null
           : Number(body.finalAmount),
       owned: body.owned ?? false,
-      expectedReleaseAt: body.expectedReleaseAt
-        ? new Date(body.expectedReleaseAt)
-        : null,
+      expectedReleaseWindow:
+        body.expectedReleaseWindow === undefined || body.expectedReleaseWindow === null
+          ? null
+          : String(body.expectedReleaseWindow),
       expectedShipAt: body.expectedShipAt ? new Date(body.expectedShipAt) : null,
       received: body.received ?? false,
     },

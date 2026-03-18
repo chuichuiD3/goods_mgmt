@@ -182,7 +182,7 @@ model MerchantPreorderLineItem {
   owned         Boolean              @default(false)
 
   // Optional expected timing (not commitments)
-  expectedReleaseAt DateTime?
+  expectedReleaseWindow String?
   expectedShipAt    DateTime?
 
   received   Boolean              @default(false)

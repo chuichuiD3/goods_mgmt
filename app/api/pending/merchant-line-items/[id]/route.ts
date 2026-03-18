@@ -51,10 +51,11 @@ export async function PUT(
         ? null
         : Number(body.finalAmount);
   if (body.owned !== undefined) data.owned = Boolean(body.owned);
-  if (body.expectedReleaseAt !== undefined)
-    data.expectedReleaseAt = body.expectedReleaseAt
-      ? new Date(body.expectedReleaseAt)
-      : null;
+  if (body.expectedReleaseWindow !== undefined)
+    data.expectedReleaseWindow =
+      body.expectedReleaseWindow === null || body.expectedReleaseWindow === ""
+        ? null
+        : String(body.expectedReleaseWindow);
   if (body.expectedShipAt !== undefined)
     data.expectedShipAt = body.expectedShipAt ? new Date(body.expectedShipAt) : null;
 
