@@ -2,35 +2,38 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type MerchantPreorderStatus =
-  | "ordered"
-  | "pending_final_payment"
-  | "fully_paid"
-  | "received";
-
 type MerchantPreorderSubtype = "full_payment_presale" | "deposit_presale";
+type MerchantPreorderGroupStatus = "open" | "received" | "cancelled";
 
 type HoldingOrderStatus = "holding" | "ready_to_ship" | "shipped" | "received";
 type HoldingOrderTimeMode = "duration" | "fixed_date" | "none";
 
-type MerchantPreorderItem = {
+type MerchantPreorderLineItem = {
   id: number;
-  name: string;
+  groupId: number;
+  title: string;
   imageUrl: string | null;
+  quantity: number;
+  notes: string | null;
+  received: boolean;
+};
+
+type MerchantPreorderGroup = {
+  id: number;
   sellerName: string;
   platform: string | null;
   purchaseDate: string;
-  amountPaid: number | null;
   subtype: MerchantPreorderSubtype;
-  quantity: number;
+  amountPaid: number | null;
   depositPaidAt: string | null;
   depositAmount: number | null;
   finalPaid: boolean;
   finalPaidAt: string | null;
   finalAmount: number | null;
   owned: boolean;
-  status: MerchantPreorderStatus;
-  note: string | null;
+  status: MerchantPreorderGroupStatus;
+  notes: string | null;
+  items: MerchantPreorderLineItem[];
 };
 
 type HoldingOrderItem = {
@@ -98,38 +101,53 @@ export default function PendingPage() {
   const [activeTab, setActiveTab] = useState<"MERCHANT" | "HOLDING">("MERCHANT");
   const [now, setNow] = useState<Date>(() => new Date());
 
-  const [merchant, setMerchant] = useState<MerchantPreorderItem[]>([]);
+  const [merchant, setMerchant] = useState<MerchantPreorderGroup[]>([]);
   const [merchantLoading, setMerchantLoading] = useState(false);
-  const [merchantEditingId, setMerchantEditingId] = useState<number | null>(null);
+  const [expandedMerchantGroupId, setExpandedMerchantGroupId] = useState<
+    number | null
+  >(null);
 
   const [holding, setHolding] = useState<HoldingOrderGroup[]>([]);
   const [holdingLoading, setHoldingLoading] = useState(false);
-  const [expandedGroupId, setExpandedGroupId] = useState<number | null>(null);
+  const [expandedHoldingGroupId, setExpandedHoldingGroupId] = useState<
+    number | null
+  >(null);
 
-  // Merchant create form
-  const [mName, setMName] = useState("");
+  // Merchant create group (and first line)
   const [mSeller, setMSeller] = useState("");
   const [mPlatform, setMPlatform] = useState("");
   const [mPurchaseDate, setMPurchaseDate] = useState<string>(() =>
     toDateInputValue(new Date().toISOString())
   );
-  const [mAmountPaid, setMAmountPaid] = useState<string>("");
-  const [mStatus, setMStatus] = useState<MerchantPreorderStatus>("ordered");
   const [mSubtype, setMSubtype] = useState<MerchantPreorderSubtype>(
     "full_payment_presale"
   );
-  const [mQuantity, setMQuantity] = useState<string>("1");
+  const [mAmountPaid, setMAmountPaid] = useState<string>("");
   const [mDepositPaidAt, setMDepositPaidAt] = useState<string>("");
   const [mDepositAmount, setMDepositAmount] = useState<string>("");
   const [mFinalPaid, setMFinalPaid] = useState<boolean>(false);
   const [mFinalPaidAt, setMFinalPaidAt] = useState<string>("");
   const [mFinalAmount, setMFinalAmount] = useState<string>("");
   const [mOwned, setMOwned] = useState<boolean>(false);
-  const [mImageUrl, setMImageUrl] = useState<string>("");
-  const [mNote, setMNote] = useState<string>("");
+  const [mGroupStatus, setMGroupStatus] =
+    useState<MerchantPreorderGroupStatus>("open");
+  const [mGroupNotes, setMGroupNotes] = useState<string>("");
 
-  // Holding group create form
-  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [mItemTitle, setMItemTitle] = useState("");
+  const [mItemQty, setMItemQty] = useState<string>("1");
+  const [mItemImageUrl, setMItemImageUrl] = useState<string>("");
+  const [mItemNotes, setMItemNotes] = useState<string>("");
+
+  // Merchant add line to expanded group
+  const [newLineTitle, setNewLineTitle] = useState("");
+  const [newLineQty, setNewLineQty] = useState<string>("1");
+  const [newLineImageUrl, setNewLineImageUrl] = useState<string>("");
+  const [newLineNotes, setNewLineNotes] = useState<string>("");
+
+  // Holding group create/edit form
+  const [editingHoldingGroupId, setEditingHoldingGroupId] = useState<number | null>(
+    null
+  );
   const [gSeller, setGSeller] = useState("");
   const [gPlatform, setGPlatform] = useState("");
   const [gPurchaseDate, setGPurchaseDate] = useState<string>(() =>
@@ -150,7 +168,9 @@ export default function PendingPage() {
   const [iImageUrl, setIImageUrl] = useState<string | null>(null);
 
   // Holding item edit form (single item at a time)
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingHoldingItemId, setEditingHoldingItemId] = useState<number | null>(
+    null
+  );
   const [eName, setEName] = useState("");
   const [ePrice, setEPrice] = useState<string>("");
   const [eQty, setEQty] = useState<string>("1");
@@ -163,7 +183,7 @@ export default function PendingPage() {
 
   const loadMerchant = async () => {
     setMerchantLoading(true);
-    const res = await fetch("/api/pending/merchant");
+    const res = await fetch("/api/pending/merchant-groups");
     const data = await res.json();
     setMerchant(data);
     setMerchantLoading(false);
@@ -184,9 +204,13 @@ export default function PendingPage() {
   }, []);
 
   const merchantCounts = useMemo(() => {
-    const total = merchant.length;
-    const active = merchant.filter((m) => m.status !== "received").length;
-    return { total, active };
+    const totalGroups = merchant.length;
+    const totalItems = merchant.reduce((sum, g) => sum + g.items.length, 0);
+    const activeItems = merchant.reduce(
+      (sum, g) => sum + g.items.filter((it) => !it.received).length,
+      0
+    );
+    return { totalGroups, totalItems, activeItems };
   }, [merchant]);
 
   const holdingCounts = useMemo(() => {
@@ -195,19 +219,21 @@ export default function PendingPage() {
     return { total, active };
   }, [holding]);
 
-  const createMerchant = async () => {
-    await fetch("/api/pending/merchant", {
+  const createMerchantGroup = async () => {
+    if (mSeller.trim() === "" || mItemTitle.trim() === "") {
+      alert("Seller and item title are required.");
+      return;
+    }
+
+    const groupRes = await fetch("/api/pending/merchant-groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: mName,
         sellerName: mSeller,
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
         purchaseDate: fromDateInputValue(mPurchaseDate),
-        amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
-        status: mSubtype === "deposit_presale" ? "ordered" : mStatus,
         subtype: mSubtype,
-        quantity: mQuantity.trim() === "" ? 1 : Number(mQuantity),
+        amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
         depositPaidAt:
           mDepositPaidAt.trim() === "" ? null : fromDateInputValue(mDepositPaidAt),
         depositAmount:
@@ -217,56 +243,109 @@ export default function PendingPage() {
           mFinalPaidAt.trim() === "" ? null : fromDateInputValue(mFinalPaidAt),
         finalAmount: mFinalAmount.trim() === "" ? null : Number(mFinalAmount),
         owned: mOwned,
-        imageUrl: mImageUrl.trim() === "" ? null : mImageUrl.trim(),
-        note: mNote.trim() === "" ? null : mNote.trim(),
+        status: mGroupStatus,
+        notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
       }),
     });
-    setMName("");
+
+    if (!groupRes.ok) {
+      const err = await groupRes.json().catch(() => ({}));
+      alert(err.error ?? "Failed to create merchant order.");
+      return;
+    }
+
+    const createdGroup = (await groupRes.json()) as MerchantPreorderGroup;
+
+    const itemRes = await fetch("/api/pending/merchant-line-items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: createdGroup.id,
+        title: mItemTitle,
+        imageUrl: mItemImageUrl.trim() === "" ? null : mItemImageUrl.trim(),
+        quantity: mItemQty.trim() === "" ? 1 : Number(mItemQty),
+        notes: mItemNotes.trim() === "" ? null : mItemNotes.trim(),
+      }),
+    });
+
+    if (!itemRes.ok) {
+      alert(
+        "Order created, but failed to create the first line item. Please add it manually."
+      );
+    }
+
     setMSeller("");
     setMPlatform("");
     setMAmountPaid("");
-    setMStatus("ordered");
     setMSubtype("full_payment_presale");
-    setMQuantity("1");
     setMDepositPaidAt("");
     setMDepositAmount("");
     setMFinalPaid(false);
     setMFinalPaidAt("");
     setMFinalAmount("");
     setMOwned(false);
-    setMImageUrl("");
-    setMNote("");
+    setMGroupStatus("open");
+    setMGroupNotes("");
+
+    setMItemTitle("");
+    setMItemQty("1");
+    setMItemImageUrl("");
+    setMItemNotes("");
+
     await loadMerchant();
   };
 
-  const saveMerchant = async (item: MerchantPreorderItem) => {
-    await fetch(`/api/pending/merchant/${item.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item),
-    });
-    setMerchantEditingId(null);
+  const deleteMerchantGroup = async (id: number) => {
+    if (!confirm("Delete this merchant order group?")) return;
+    await fetch(`/api/pending/merchant-groups/${id}`, { method: "DELETE" });
+    if (expandedMerchantGroupId === id) setExpandedMerchantGroupId(null);
     await loadMerchant();
   };
 
-  const deleteMerchant = async (id: number) => {
-    if (!confirm("Delete this preorder?")) return;
-    await fetch(`/api/pending/merchant/${id}`, { method: "DELETE" });
-    await loadMerchant();
-  };
-
-  const markMerchantReceived = async (id: number) => {
-    const res = await fetch(`/api/pending/merchant/${id}/mark-received`, {
+  const markMerchantLineReceived = async (id: number) => {
+    const res = await fetch(`/api/pending/merchant-line-items/${id}/mark-received`, {
       method: "POST",
     });
     if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error ?? "Failed to move to Collection. Preorder status was not changed.");
+      const err = await res.json().catch(() => ({}));
+      alert(err.error ?? "Failed to mark received");
+      return;
     }
     await loadMerchant();
   };
 
-  const createGroup = async () => {
+  const addLineItemToExpandedGroup = async () => {
+    if (!expandedMerchantGroupId) return;
+    if (newLineTitle.trim() === "") {
+      alert("Line item title is required.");
+      return;
+    }
+
+    const res = await fetch("/api/pending/merchant-line-items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: expandedMerchantGroupId,
+        title: newLineTitle,
+        imageUrl: newLineImageUrl.trim() === "" ? null : newLineImageUrl.trim(),
+        quantity: newLineQty.trim() === "" ? 1 : Number(newLineQty),
+        notes: newLineNotes.trim() === "" ? null : newLineNotes.trim(),
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Failed to add line item.");
+      return;
+    }
+
+    setNewLineTitle("");
+    setNewLineQty("1");
+    setNewLineImageUrl("");
+    setNewLineNotes("");
+    await loadMerchant();
+  };
+
+  const createHoldingGroup = async () => {
     const durationDays =
       gTimeMode !== "duration"
         ? null
@@ -296,8 +375,8 @@ export default function PendingPage() {
       status: gStatus,
     };
 
-    if (editingGroupId) {
-      await fetch(`/api/pending/holding-groups/${editingGroupId}`, {
+    if (editingHoldingGroupId) {
+      await fetch(`/api/pending/holding-groups/${editingHoldingGroupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -310,7 +389,7 @@ export default function PendingPage() {
       });
     }
 
-    setEditingGroupId(null);
+    setEditingHoldingGroupId(null);
     setGSeller("");
     setGPlatform("");
     setGPurchaseDate(toDateInputValue(new Date().toISOString()));
@@ -324,39 +403,8 @@ export default function PendingPage() {
     await loadHolding();
   };
 
-  const startEditGroup = (g: HoldingOrderGroup) => {
-    setEditingGroupId(g.id);
-    setGSeller(g.sellerName);
-    setGPlatform(g.platform ?? "");
-    setGPurchaseDate(toDateInputValue(g.purchaseDate) || toDateInputValue(new Date().toISOString()));
-    setGTimeMode(g.timeMode);
-    setGShippingThreshold(g.shippingThreshold != null ? String(g.shippingThreshold) : "");
-    setGNote(g.note ?? "");
-    setGStatus(g.status);
-
-    if (g.timeMode === "duration") {
-      const d = g.durationDays ?? 90;
-      if (d === 30 || d === 90 || d === 180) {
-        setGDurationPreset(String(d));
-        setGDurationCustom("");
-      } else {
-        setGDurationPreset("custom");
-        setGDurationCustom(String(d));
-      }
-      setGFixedDate("");
-    } else if (g.timeMode === "fixed_date") {
-      setGFixedDate(toDateInputValue(g.deadline ?? g.computedDeadline));
-      setGDurationPreset("90");
-      setGDurationCustom("");
-    } else {
-      setGDurationPreset("90");
-      setGDurationCustom("");
-      setGFixedDate("");
-    }
-  };
-
-  const cancelEditGroup = () => {
-    setEditingGroupId(null);
+  const cancelEditHoldingGroup = () => {
+    setEditingHoldingGroupId(null);
     setGSeller("");
     setGPlatform("");
     setGPurchaseDate(toDateInputValue(new Date().toISOString()));
@@ -369,20 +417,41 @@ export default function PendingPage() {
     setGStatus("holding");
   };
 
-  const updateGroupStatus = async (groupId: number, status: HoldingOrderStatus) => {
+  const startEditHoldingGroup = (g: HoldingOrderGroup) => {
+    setEditingHoldingGroupId(g.id);
+    setGSeller(g.sellerName);
+    setGPlatform(g.platform ?? "");
+    setGPurchaseDate(toDateInputValue(g.purchaseDate));
+    setGTimeMode(g.timeMode);
+    setGDurationPreset(g.durationDays ? String(g.durationDays) : "90");
+    setGDurationCustom("");
+    setGFixedDate(toDateInputValue(g.deadline));
+    setGShippingThreshold(g.shippingThreshold != null ? String(g.shippingThreshold) : "");
+    setGNote(g.note ?? "");
+    setGStatus(g.status);
+  };
+
+  const deleteHoldingGroup = async (id: number) => {
+    if (!confirm("Delete this holding group?")) return;
+    await fetch(`/api/pending/holding-groups/${id}`, { method: "DELETE" });
+    if (expandedHoldingGroupId === id) setExpandedHoldingGroupId(null);
+    await loadHolding();
+  };
+
+  const updateHoldingGroupStatus = async (id: number, status: HoldingOrderStatus) => {
     if (status === "received") {
-      const res = await fetch(
-        `/api/pending/holding-groups/${groupId}/mark-received`,
-        { method: "POST" }
-      );
+      const res = await fetch(`/api/pending/holding-groups/${id}/mark-received`, {
+        method: "POST",
+      });
       if (!res.ok) {
-        alert("Failed to create Collection items. Group status was not changed.");
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Failed to mark received");
       }
       await loadHolding();
       return;
     }
 
-    await fetch(`/api/pending/holding-groups/${groupId}`, {
+    await fetch(`/api/pending/holding-groups/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -390,14 +459,7 @@ export default function PendingPage() {
     await loadHolding();
   };
 
-  const deleteGroup = async (groupId: number) => {
-    if (!confirm("Delete this group (and its items)?")) return;
-    await fetch(`/api/pending/holding-groups/${groupId}`, { method: "DELETE" });
-    if (expandedGroupId === groupId) setExpandedGroupId(null);
-    await loadHolding();
-  };
-
-  const addItemToGroup = async (groupId: number) => {
+  const addHoldingItemToGroup = async (groupId: number) => {
     await fetch("/api/pending/holding-items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -406,7 +468,7 @@ export default function PendingPage() {
         name: iName,
         price: iPrice.trim() === "" ? 0 : Number(iPrice),
         quantity: iQty.trim() === "" ? 1 : Number(iQty),
-        imageUrl: iImageUrl ?? null,
+        imageUrl: iImageUrl,
       }),
     });
     setIName("");
@@ -417,15 +479,15 @@ export default function PendingPage() {
   };
 
   const startEditHoldingItem = (it: HoldingOrderItem) => {
-    setEditingItemId(it.id);
+    setEditingHoldingItemId(it.id);
     setEName(it.name);
     setEPrice(String(it.price));
     setEQty(String(it.quantity));
-    setEImageUrl(null); // only set when user picks a new image
+    setEImageUrl(null);
   };
 
   const cancelEditHoldingItem = () => {
-    setEditingItemId(null);
+    setEditingHoldingItemId(null);
     setEName("");
     setEPrice("");
     setEQty("1");
@@ -455,7 +517,7 @@ export default function PendingPage() {
   const deleteHoldingItem = async (id: number) => {
     if (!confirm("Delete this item?")) return;
     await fetch(`/api/pending/holding-items/${id}`, { method: "DELETE" });
-    if (editingItemId === id) cancelEditHoldingItem();
+    if (editingHoldingItemId === id) cancelEditHoldingItem();
     await loadHolding();
   };
 
@@ -485,7 +547,7 @@ export default function PendingPage() {
             }`}
             onClick={() => setActiveTab("MERCHANT")}
           >
-            Merchant Preorders ({merchantCounts.active}/{merchantCounts.total})
+            Merchant Preorders ({merchantCounts.activeItems}/{merchantCounts.totalItems})
           </button>
           <button
             type="button"
@@ -503,17 +565,8 @@ export default function PendingPage() {
         {activeTab === "MERCHANT" ? (
           <div className="mt-4">
             <div className="rounded border bg-white p-3 text-sm">
-              <div className="mb-2 text-sm font-semibold">Add merchant preorder</div>
+              <div className="mb-2 text-sm font-semibold">Create merchant order</div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Name</label>
-                  <input
-                    value={mName}
-                    onChange={(e) => setMName(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Item name"
-                  />
-                </div>
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">Seller</label>
                   <input
@@ -522,17 +575,6 @@ export default function PendingPage() {
                     className="w-full rounded border px-2 py-1 text-sm"
                     placeholder="Shop / seller"
                   />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Subtype</label>
-                  <select
-                    value={mSubtype}
-                    onChange={(e) => setMSubtype(e.target.value as MerchantPreorderSubtype)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  >
-                    <option value="full_payment_presale">Full payment presale</option>
-                    <option value="deposit_presale">Deposit presale</option>
-                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">Platform</label>
@@ -552,48 +594,37 @@ export default function PendingPage() {
                     className="w-full rounded border px-2 py-1 text-sm"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Subtype</label>
+                  <select
+                    value={mSubtype}
+                    onChange={(e) => setMSubtype(e.target.value as MerchantPreorderSubtype)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  >
+                    <option value="full_payment_presale">Full payment presale</option>
+                    <option value="deposit_presale">Deposit presale</option>
+                  </select>
+                </div>
+
                 {mSubtype === "full_payment_presale" ? (
-                  <>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Quantity</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={mQuantity}
-                        onChange={(e) => setMQuantity(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Total paid (optional)
-                      </label>
-                      <input
-                        type="number"
-                        value={mAmountPaid}
-                        onChange={(e) => setMAmountPaid(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="Optional"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Status</label>
-                      <select
-                        value={mStatus}
-                        onChange={(e) => setMStatus(e.target.value as MerchantPreorderStatus)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      >
-                        <option value="ordered">ordered</option>
-                        <option value="pending_final_payment">pending_final_payment</option>
-                        <option value="fully_paid">fully_paid</option>
-                        <option value="received">received</option>
-                      </select>
-                    </div>
-                  </>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-zinc-600">
+                      Total paid (optional)
+                    </label>
+                    <input
+                      type="number"
+                      value={mAmountPaid}
+                      onChange={(e) => setMAmountPaid(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      placeholder="Optional"
+                    />
+                  </div>
                 ) : (
                   <>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Deposit paid at</label>
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Deposit paid at
+                      </label>
                       <input
                         type="date"
                         value={mDepositPaidAt}
@@ -602,7 +633,9 @@ export default function PendingPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Deposit amount</label>
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Deposit amount
+                      </label>
                       <input
                         type="number"
                         value={mDepositAmount}
@@ -622,7 +655,9 @@ export default function PendingPage() {
                       </label>
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Final paid at</label>
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Final paid at
+                      </label>
                       <input
                         type="date"
                         value={mFinalPaidAt}
@@ -632,7 +667,9 @@ export default function PendingPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Final amount</label>
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Final amount
+                      </label>
                       <input
                         type="number"
                         value={mFinalAmount}
@@ -654,28 +691,88 @@ export default function PendingPage() {
                     </div>
                   </>
                 )}
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Group status
+                  </label>
+                  <select
+                    value={mGroupStatus}
+                    onChange={(e) =>
+                      setMGroupStatus(e.target.value as MerchantPreorderGroupStatus)
+                    }
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  >
+                    <option value="open">open</option>
+                    <option value="received">received</option>
+                    <option value="cancelled">cancelled</option>
+                  </select>
+                </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="block text-xs font-medium text-zinc-600">Image URL (optional)</label>
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Group notes (optional)
+                  </label>
                   <input
-                    value={mImageUrl}
-                    onChange={(e) => setMImageUrl(e.target.value)}
+                    value={mGroupNotes}
+                    onChange={(e) => setMGroupNotes(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 border-t pt-3 text-xs font-semibold text-zinc-700">
+                  First line item
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Title</label>
+                  <input
+                    value={mItemTitle}
+                    onChange={(e) => setMItemTitle(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    placeholder="Item title"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={mItemQty}
+                    onChange={(e) => setMItemQty(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Image URL (optional)
+                  </label>
+                  <input
+                    value={mItemImageUrl}
+                    onChange={(e) => setMItemImageUrl(e.target.value)}
                     className="w-full rounded border px-2 py-1 text-sm"
                     placeholder="data:... or https://..."
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="block text-xs font-medium text-zinc-600">Note (optional)</label>
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Line item notes (optional)
+                  </label>
                   <input
-                    value={mNote}
-                    onChange={(e) => setMNote(e.target.value)}
+                    value={mItemNotes}
+                    onChange={(e) => setMItemNotes(e.target.value)}
                     className="w-full rounded border px-2 py-1 text-sm"
                   />
                 </div>
               </div>
               <button
                 type="button"
-                onClick={createMerchant}
-                disabled={mName.trim() === "" || mSeller.trim() === "" || mPurchaseDate.trim() === ""}
+                onClick={createMerchantGroup}
+                disabled={
+                  mSeller.trim() === "" ||
+                  mPurchaseDate.trim() === "" ||
+                  mItemTitle.trim() === ""
+                }
                 className="mt-3 rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
               >
                 Create
@@ -685,403 +782,186 @@ export default function PendingPage() {
             {merchantLoading ? (
               <div className="mt-3 text-xs text-zinc-500">Loading…</div>
             ) : merchant.length === 0 ? (
-              <div className="mt-3 text-xs text-zinc-500">No merchant preorders.</div>
+              <div className="mt-3 text-xs text-zinc-500">No merchant orders.</div>
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {merchant.map((m) => {
-                  const waitingDays = daysBetween(m.purchaseDate, now);
-                  const isEditing = merchantEditingId === m.id;
+                {merchant.map((g) => {
+                  const waitingDays = daysBetween(g.purchaseDate, now);
+                  const expanded = expandedMerchantGroupId === g.id;
+                  const openCount = g.items.filter((it) => !it.received).length;
                   return (
                     <div
-                      key={m.id}
+                      key={g.id}
                       className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
                     >
-                      <div className="relative h-40 w-full bg-zinc-100">
-                        {m.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={m.imageUrl}
-                            alt={m.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
+                      <div className="flex items-center justify-between gap-2 border-b p-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold">
+                            {g.sellerName}
+                            {g.platform ? ` · ${g.platform}` : ""}
+                          </div>
+                          <div className="text-xs text-zinc-600">
+                            Purchase: {toDateInputValue(g.purchaseDate)} · waiting{" "}
+                            {waitingDays} days
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                          onClick={() => {
+                            setExpandedMerchantGroupId((prev) =>
+                              prev === g.id ? null : g.id
+                            );
+                            setNewLineTitle("");
+                            setNewLineQty("1");
+                            setNewLineImageUrl("");
+                            setNewLineNotes("");
+                          }}
+                        >
+                          {expanded ? "Hide" : "View"} ({openCount}/{g.items.length})
+                        </button>
+                      </div>
+
+                      <div className="flex flex-1 flex-col gap-2 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                            {g.subtype === "deposit_presale"
+                              ? "deposit presale"
+                              : "full payment"}
+                          </div>
+                          <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
+                            {g.status}
+                          </div>
+                        </div>
+
+                        {g.subtype === "deposit_presale" ? (
+                          <div className="text-xs text-zinc-700">
+                            Deposit: {g.depositAmount ?? "—"} · Final paid:{" "}
+                            {g.finalPaid ? "Yes" : "No"} · Owned:{" "}
+                            {g.owned ? "Yes" : "No"}
+                          </div>
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
-                            No image
+                          <div className="text-xs text-zinc-700">
+                            Total paid: {g.amountPaid ?? "—"}
                           </div>
                         )}
-                      </div>
-                      <div className="flex flex-1 flex-col gap-2 p-3">
-                        {isEditing ? (
-                          <>
-                            <input
-                              className="w-full rounded border px-2 py-1 text-sm"
-                              value={m.name}
-                              onChange={(e) =>
-                                setMerchant((prev) =>
-                                  prev.map((x) =>
-                                    x.id === m.id ? { ...x, name: e.target.value } : x
-                                  )
-                                )
-                              }
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                value={m.sellerName}
-                                onChange={(e) =>
-                                  setMerchant((prev) =>
-                                    prev.map((x) =>
-                                      x.id === m.id ? { ...x, sellerName: e.target.value } : x
-                                    )
-                                  )
-                                }
-                                placeholder="Seller"
-                              />
-                              <input
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                value={m.platform ?? ""}
-                                onChange={(e) =>
-                                  setMerchant((prev) =>
-                                    prev.map((x) =>
-                                      x.id === m.id
-                                        ? { ...x, platform: e.target.value }
-                                        : x
-                                    )
-                                  )
-                                }
-                                placeholder="Platform"
-                              />
+
+                        {g.notes ? (
+                          <div className="text-xs text-zinc-600 line-clamp-3">
+                            {g.notes}
+                          </div>
+                        ) : null}
+
+                        {expanded ? (
+                          <div className="mt-2 space-y-2">
+                            <div className="text-xs font-semibold text-zinc-700">
+                              Line items
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <select
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                value={m.subtype}
-                                onChange={(e) =>
-                                  setMerchant((prev) =>
-                                    prev.map((x) =>
-                                      x.id === m.id
-                                        ? {
-                                            ...x,
-                                            subtype: e.target.value as MerchantPreorderSubtype,
-                                          }
-                                        : x
-                                    )
-                                  )
-                                }
-                              >
-                                <option value="full_payment_presale">
-                                  Full payment presale
-                                </option>
-                                <option value="deposit_presale">Deposit presale</option>
-                              </select>
-                              {m.subtype === "full_payment_presale" ? (
-                                <input
-                                  type="number"
-                                  min={1}
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={m.quantity ?? 1}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              quantity:
-                                                e.target.value.trim() === ""
-                                                  ? 1
-                                                  : Math.max(1, Number(e.target.value)),
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  placeholder="Qty"
-                                />
-                              ) : (
-                                <div className="text-xs text-zinc-600">
-                                  Fact-based payment tracking
+                            <div className="space-y-2">
+                              {g.items.map((it) => (
+                                <div
+                                  key={it.id}
+                                  className="flex items-start gap-2 rounded border p-2"
+                                >
+                                  <div className="h-12 w-12 flex-none overflow-hidden rounded bg-zinc-100">
+                                    {it.imageUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={it.imageUrl}
+                                        alt={it.title}
+                                        loading="lazy"
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                                        —
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate text-xs font-medium">
+                                      {it.title}{" "}
+                                      <span className="text-zinc-500">
+                                        ×{it.quantity}
+                                      </span>
+                                    </div>
+                                    {it.notes ? (
+                                      <div className="text-[11px] text-zinc-600 line-clamp-2">
+                                        {it.notes}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <div className="rounded bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-700">
+                                      {it.received ? "received" : "waiting"}
+                                    </div>
+                                    {!it.received ? (
+                                      <button
+                                        type="button"
+                                        className="rounded border px-2 py-0.5 text-[10px] hover:bg-zinc-100"
+                                        onClick={() => markMerchantLineReceived(it.id)}
+                                      >
+                                        Mark received → Collection
+                                      </button>
+                                    ) : null}
+                                  </div>
                                 </div>
-                              )}
+                              ))}
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="date"
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                value={toDateInputValue(m.purchaseDate)}
-                                onChange={(e) =>
-                                  setMerchant((prev) =>
-                                    prev.map((x) =>
-                                      x.id === m.id
-                                        ? { ...x, purchaseDate: fromDateInputValue(e.target.value) }
-                                        : x
-                                    )
-                                  )
-                                }
-                              />
-                              {m.subtype === "full_payment_presale" ? (
-                                <input
-                                  type="number"
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={m.amountPaid ?? ""}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              amountPaid:
-                                                e.target.value.trim() === ""
-                                                  ? null
-                                                  : Number(e.target.value),
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  placeholder="Total paid"
-                                />
-                              ) : (
-                                <input
-                                  type="date"
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={toDateInputValue(m.depositPaidAt)}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              depositPaidAt: e.target.value
-                                                ? fromDateInputValue(e.target.value)
-                                                : null,
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  placeholder="Deposit paid at"
-                                />
-                              )}
-                            </div>
-                            {m.subtype === "full_payment_presale" ? (
-                              <select
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                value={m.status}
-                                onChange={(e) =>
-                                  setMerchant((prev) =>
-                                    prev.map((x) =>
-                                      x.id === m.id
-                                        ? {
-                                            ...x,
-                                            status: e.target.value as MerchantPreorderStatus,
-                                          }
-                                        : x
-                                    )
-                                  )
-                                }
-                              >
-                                <option value="ordered">ordered</option>
-                                <option value="pending_final_payment">
-                                  pending_final_payment
-                                </option>
-                                <option value="fully_paid">fully_paid</option>
-                                <option value="received">received</option>
-                              </select>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  type="number"
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={m.depositAmount ?? ""}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              depositAmount:
-                                                e.target.value.trim() === ""
-                                                  ? null
-                                                  : Number(e.target.value),
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  placeholder="Deposit amount"
-                                />
-                                <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(m.finalPaid)}
-                                    onChange={(e) =>
-                                      setMerchant((prev) =>
-                                        prev.map((x) =>
-                                          x.id === m.id
-                                            ? { ...x, finalPaid: e.target.checked }
-                                            : x
-                                        )
-                                      )
-                                    }
-                                  />
-                                  Final paid
-                                </label>
-                                <input
-                                  type="date"
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={toDateInputValue(m.finalPaidAt)}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              finalPaidAt: e.target.value
-                                                ? fromDateInputValue(e.target.value)
-                                                : null,
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  disabled={!m.finalPaid}
-                                />
-                                <input
-                                  type="number"
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                  value={m.finalAmount ?? ""}
-                                  onChange={(e) =>
-                                    setMerchant((prev) =>
-                                      prev.map((x) =>
-                                        x.id === m.id
-                                          ? {
-                                              ...x,
-                                              finalAmount:
-                                                e.target.value.trim() === ""
-                                                  ? null
-                                                  : Number(e.target.value),
-                                            }
-                                          : x
-                                      )
-                                    )
-                                  }
-                                  placeholder="Final amount"
-                                  disabled={!m.finalPaid}
-                                />
-                                <label className="col-span-2 inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(m.owned)}
-                                    onChange={(e) =>
-                                      setMerchant((prev) =>
-                                        prev.map((x) =>
-                                          x.id === m.id
-                                            ? { ...x, owned: e.target.checked }
-                                            : x
-                                        )
-                                      )
-                                    }
-                                  />
-                                  Owned (received)
-                                </label>
+
+                            <div className="rounded border bg-white p-2">
+                              <div className="mb-1 text-xs font-semibold text-zinc-700">
+                                Add line item
                               </div>
-                            )}
-                            <input
-                              className="w-full rounded border px-2 py-1 text-sm"
-                              value={m.imageUrl ?? ""}
-                              onChange={(e) =>
-                                setMerchant((prev) =>
-                                  prev.map((x) =>
-                                    x.id === m.id ? { ...x, imageUrl: e.target.value } : x
-                                  )
-                                )
-                              }
-                              placeholder="Image URL"
-                            />
-                            <input
-                              className="w-full rounded border px-2 py-1 text-sm"
-                              value={m.note ?? ""}
-                              onChange={(e) =>
-                                setMerchant((prev) =>
-                                  prev.map((x) =>
-                                    x.id === m.id ? { ...x, note: e.target.value } : x
-                                  )
-                                )
-                              }
-                              placeholder="Note"
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
-                                onClick={() => saveMerchant(m)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
-                                onClick={() => setMerchantEditingId(null)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <div className="line-clamp-2 text-sm font-semibold text-zinc-900">
-                                {m.name}
-                              </div>
-                              <div className="mt-0.5 text-xs text-zinc-600">
-                                {m.sellerName}
-                                {m.platform ? ` · ${m.platform}` : ""}
+                              <div className="grid grid-cols-1 gap-2">
+                                <input
+                                  value={newLineTitle}
+                                  onChange={(e) => setNewLineTitle(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-xs"
+                                  placeholder="Title"
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={newLineQty}
+                                    onChange={(e) => setNewLineQty(e.target.value)}
+                                    className="w-full rounded border px-2 py-1 text-xs"
+                                    placeholder="Qty"
+                                  />
+                                  <input
+                                    value={newLineImageUrl}
+                                    onChange={(e) => setNewLineImageUrl(e.target.value)}
+                                    className="w-full rounded border px-2 py-1 text-xs"
+                                    placeholder="Image URL (optional)"
+                                  />
+                                </div>
+                                <input
+                                  value={newLineNotes}
+                                  onChange={(e) => setNewLineNotes(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-xs"
+                                  placeholder="Notes (optional)"
+                                />
+                                <button
+                                  type="button"
+                                  className="rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+                                  onClick={addLineItemToExpandedGroup}
+                                >
+                                  Add
+                                </button>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-zinc-500">
-                                Purchase: {toDateInputValue(m.purchaseDate) || "—"}
-                              </span>
-                              <span className="text-zinc-700">
-                                Waiting {waitingDays} days
-                              </span>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              <button
+                                className="rounded border px-2 py-0.5 text-xs hover:bg-zinc-100"
+                                onClick={() => deleteMerchantGroup(g.id)}
+                              >
+                                Delete group
+                              </button>
                             </div>
-
-                            <div className="mt-1 flex items-center justify-between gap-2">
-                              <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
-                                {m.subtype === "deposit_presale"
-                                  ? m.owned
-                                    ? "Owned"
-                                    : m.finalPaid
-                                      ? "Final paid (waiting)"
-                                      : m.depositPaidAt || m.depositAmount
-                                        ? "Deposit paid"
-                                        : "Ordered"
-                                  : m.status}
-                              </span>
-                              <div className="flex flex-wrap gap-1 text-[11px]">
-                                <button
-                                  className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                                  onClick={() => setMerchantEditingId(m.id)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                                  onClick={() => deleteMerchant(m.id)}
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  className="rounded border px-2 py-0.5 hover:bg-zinc-100"
-                                  onClick={() => markMerchantReceived(m.id)}
-                                >
-                                  Mark received → Collection
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -1093,7 +973,7 @@ export default function PendingPage() {
           <div className="mt-4">
             <div className="rounded border bg-white p-3 text-sm">
               <div className="mb-2 text-sm font-semibold">
-                {editingGroupId ? "Edit holding group" : "Create holding group"}
+                {editingHoldingGroupId ? "Edit holding group" : "Create holding group"}
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
@@ -1213,16 +1093,16 @@ export default function PendingPage() {
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
-                  onClick={createGroup}
+                  onClick={createHoldingGroup}
                   disabled={gSeller.trim() === ""}
                   className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
                 >
-                  {editingGroupId ? "Save changes" : "Create group"}
+                  {editingHoldingGroupId ? "Save changes" : "Create group"}
                 </button>
-                {editingGroupId && (
+                {editingHoldingGroupId && (
                   <button
                     type="button"
-                    onClick={cancelEditGroup}
+                    onClick={cancelEditHoldingGroup}
                     className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
                   >
                     Cancel
@@ -1239,14 +1119,17 @@ export default function PendingPage() {
               <div className="mt-4 space-y-3">
                 {holding.map((g) => {
                   const total = groupTotals.get(g.id) ?? 0;
-                  const isExpanded = expandedGroupId === g.id;
+                  const expanded = expandedHoldingGroupId === g.id;
                   const count = g.items.length;
                   const cd = countdown(g.computedDeadline, now);
                   const soon =
                     g.computedDeadline &&
                     (() => {
                       const t = new Date(g.computedDeadline).getTime();
-                      return !Number.isNaN(t) && t - now.getTime() <= 5 * 24 * 60 * 60 * 1000;
+                      return (
+                        !Number.isNaN(t) &&
+                        t - now.getTime() <= 5 * 24 * 60 * 60 * 1000
+                      );
                     })();
 
                   return (
@@ -1268,7 +1151,10 @@ export default function PendingPage() {
                             {g.timeMode === "none" ? null : g.timeMode === "duration" ? (
                               <>
                                 Holding: {g.durationDays ?? "—"} days · Deadline:{" "}
-                                {g.computedDeadline ? toDateInputValue(g.computedDeadline) : "—"} ·{" "}
+                                {g.computedDeadline
+                                  ? toDateInputValue(g.computedDeadline)
+                                  : "—"}{" "}
+                                ·{" "}
                                 <span className={soon ? "font-semibold text-red-600" : ""}>
                                   {cd}
                                 </span>
@@ -1276,7 +1162,10 @@ export default function PendingPage() {
                             ) : (
                               <>
                                 Deadline:{" "}
-                                {g.computedDeadline ? toDateInputValue(g.computedDeadline) : "—"} ·{" "}
+                                {g.computedDeadline
+                                  ? toDateInputValue(g.computedDeadline)
+                                  : "—"}{" "}
+                                ·{" "}
                                 <span className={soon ? "font-semibold text-red-600" : ""}>
                                   {cd}
                                 </span>
@@ -1290,7 +1179,7 @@ export default function PendingPage() {
                             className="rounded border px-2 py-1 text-xs"
                             value={g.status}
                             onChange={(e) =>
-                              updateGroupStatus(g.id, e.target.value as HoldingOrderStatus)
+                              updateHoldingGroupStatus(g.id, e.target.value as HoldingOrderStatus)
                             }
                           >
                             <option value="holding">holding</option>
@@ -1300,28 +1189,28 @@ export default function PendingPage() {
                           </select>
                           <button
                             className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
-                            onClick={() => startEditGroup(g)}
+                            onClick={() => startEditHoldingGroup(g)}
                           >
                             Edit
                           </button>
                           <button
                             className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
                             onClick={() =>
-                              setExpandedGroupId(isExpanded ? null : g.id)
+                              setExpandedHoldingGroupId(expanded ? null : g.id)
                             }
                           >
-                            {isExpanded ? "Hide" : "View"}
+                            {expanded ? "Hide" : "View"}
                           </button>
                           <button
                             className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
-                            onClick={() => deleteGroup(g.id)}
+                            onClick={() => deleteHoldingGroup(g.id)}
                           >
                             Delete
                           </button>
                         </div>
                       </div>
 
-                      {isExpanded && (
+                      {expanded && (
                         <div className="mt-3 border-t pt-3">
                           <div className="mb-2 text-xs font-medium text-zinc-600">
                             Items
@@ -1352,7 +1241,7 @@ export default function PendingPage() {
                                         </div>
                                       )}
                                     </div>
-                                    {editingItemId === it.id ? (
+                                    {editingHoldingItemId === it.id ? (
                                       <div className="space-y-1">
                                         <input
                                           value={eName}
@@ -1415,7 +1304,7 @@ export default function PendingPage() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {editingItemId === it.id ? (
+                                    {editingHoldingItemId === it.id ? (
                                       <>
                                         <button
                                           className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
@@ -1456,9 +1345,7 @@ export default function PendingPage() {
                           )}
 
                           <div className="mt-3 rounded border bg-zinc-50 p-2">
-                            <div className="mb-2 text-xs font-medium text-zinc-600">
-                              Add item
-                            </div>
+                            <div className="mb-2 text-xs font-medium text-zinc-600">Add item</div>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                               <input
                                 value={iName}
@@ -1506,9 +1393,7 @@ export default function PendingPage() {
                               />
                               {iImageUrl && (
                                 <div>
-                                  <div className="text-xs font-medium text-zinc-500">
-                                    Preview
-                                  </div>
+                                  <div className="text-xs font-medium text-zinc-500">Preview</div>
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={iImageUrl}
@@ -1522,7 +1407,7 @@ export default function PendingPage() {
                               type="button"
                               className="mt-2 rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
                               disabled={iName.trim() === ""}
-                              onClick={() => addItemToGroup(g.id)}
+                              onClick={() => addHoldingItemToGroup(g.id)}
                             >
                               Add
                             </button>
