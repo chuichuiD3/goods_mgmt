@@ -15,6 +15,17 @@ type MerchantPreorderLineItem = {
   imageUrl: string | null;
   quantity: number;
   notes: string | null;
+  subtype: MerchantPreorderSubtype;
+  amountPaidTotal: number | null;
+  currency: string;
+  depositPaidAt: string | null;
+  depositAmount: number | null;
+  finalPaid: boolean;
+  finalPaidAt: string | null;
+  finalAmount: number | null;
+  owned: boolean;
+  expectedReleaseAt: string | null;
+  expectedShipAt: string | null;
   received: boolean;
 };
 
@@ -23,14 +34,6 @@ type MerchantPreorderGroup = {
   sellerName: string;
   platform: string | null;
   purchaseDate: string;
-  subtype: MerchantPreorderSubtype;
-  amountPaid: number | null;
-  depositPaidAt: string | null;
-  depositAmount: number | null;
-  finalPaid: boolean;
-  finalPaidAt: string | null;
-  finalAmount: number | null;
-  owned: boolean;
   status: MerchantPreorderGroupStatus;
   notes: string | null;
   items: MerchantPreorderLineItem[];
@@ -116,36 +119,75 @@ export default function PendingPage() {
     number | null
   >(null);
 
-  // Merchant create group (and first line)
+  // Merchant group (shared) form
   const [mSeller, setMSeller] = useState("");
   const [mPlatform, setMPlatform] = useState("");
   const [mPurchaseDate, setMPurchaseDate] = useState<string>(() =>
     toDateInputValue(new Date().toISOString())
   );
-  const [mSubtype, setMSubtype] = useState<MerchantPreorderSubtype>(
-    "full_payment_presale"
-  );
-  const [mAmountPaid, setMAmountPaid] = useState<string>("");
-  const [mDepositPaidAt, setMDepositPaidAt] = useState<string>("");
-  const [mDepositAmount, setMDepositAmount] = useState<string>("");
-  const [mFinalPaid, setMFinalPaid] = useState<boolean>(false);
-  const [mFinalPaidAt, setMFinalPaidAt] = useState<string>("");
-  const [mFinalAmount, setMFinalAmount] = useState<string>("");
-  const [mOwned, setMOwned] = useState<boolean>(false);
   const [mGroupStatus, setMGroupStatus] =
     useState<MerchantPreorderGroupStatus>("open");
   const [mGroupNotes, setMGroupNotes] = useState<string>("");
 
+  // First line item form (transaction details per item)
   const [mItemTitle, setMItemTitle] = useState("");
   const [mItemQty, setMItemQty] = useState<string>("1");
   const [mItemImageUrl, setMItemImageUrl] = useState<string>("");
   const [mItemNotes, setMItemNotes] = useState<string>("");
+  const [mItemSubtype, setMItemSubtype] = useState<MerchantPreorderSubtype>(
+    "full_payment_presale"
+  );
+  const [mItemAmountPaidTotal, setMItemAmountPaidTotal] = useState<string>("");
+  const [mItemCurrency, setMItemCurrency] = useState<string>("JPY");
+  const [mItemDepositPaidAt, setMItemDepositPaidAt] = useState<string>("");
+  const [mItemDepositAmount, setMItemDepositAmount] = useState<string>("");
+  const [mItemFinalPaid, setMItemFinalPaid] = useState<boolean>(false);
+  const [mItemFinalPaidAt, setMItemFinalPaidAt] = useState<string>("");
+  const [mItemFinalAmount, setMItemFinalAmount] = useState<string>("");
+  const [mItemOwned, setMItemOwned] = useState<boolean>(false);
+  const [mItemExpectedReleaseAt, setMItemExpectedReleaseAt] = useState<string>("");
+  const [mItemExpectedShipAt, setMItemExpectedShipAt] = useState<string>("");
 
   // Merchant add line to expanded group
   const [newLineTitle, setNewLineTitle] = useState("");
   const [newLineQty, setNewLineQty] = useState<string>("1");
   const [newLineImageUrl, setNewLineImageUrl] = useState<string>("");
   const [newLineNotes, setNewLineNotes] = useState<string>("");
+  const [newLineSubtype, setNewLineSubtype] = useState<MerchantPreorderSubtype>(
+    "full_payment_presale"
+  );
+  const [newLineAmountPaidTotal, setNewLineAmountPaidTotal] = useState<string>("");
+  const [newLineCurrency, setNewLineCurrency] = useState<string>("JPY");
+  const [newLineDepositPaidAt, setNewLineDepositPaidAt] = useState<string>("");
+  const [newLineDepositAmount, setNewLineDepositAmount] = useState<string>("");
+  const [newLineFinalPaid, setNewLineFinalPaid] = useState<boolean>(false);
+  const [newLineFinalPaidAt, setNewLineFinalPaidAt] = useState<string>("");
+  const [newLineFinalAmount, setNewLineFinalAmount] = useState<string>("");
+  const [newLineOwned, setNewLineOwned] = useState<boolean>(false);
+  const [newLineExpectedReleaseAt, setNewLineExpectedReleaseAt] = useState<string>("");
+  const [newLineExpectedShipAt, setNewLineExpectedShipAt] = useState<string>("");
+
+  // Merchant line item edit (single line at a time)
+  const [editingMerchantLineId, setEditingMerchantLineId] = useState<number | null>(
+    null
+  );
+  const [eLineTitle, setELineTitle] = useState("");
+  const [eLineQty, setELineQty] = useState<string>("1");
+  const [eLineImageUrl, setELineImageUrl] = useState<string>("");
+  const [eLineNotes, setELineNotes] = useState<string>("");
+  const [eLineSubtype, setELineSubtype] = useState<MerchantPreorderSubtype>(
+    "full_payment_presale"
+  );
+  const [eLineAmountPaidTotal, setELineAmountPaidTotal] = useState<string>("");
+  const [eLineCurrency, setELineCurrency] = useState<string>("JPY");
+  const [eLineDepositPaidAt, setELineDepositPaidAt] = useState<string>("");
+  const [eLineDepositAmount, setELineDepositAmount] = useState<string>("");
+  const [eLineFinalPaid, setELineFinalPaid] = useState<boolean>(false);
+  const [eLineFinalPaidAt, setELineFinalPaidAt] = useState<string>("");
+  const [eLineFinalAmount, setELineFinalAmount] = useState<string>("");
+  const [eLineOwned, setELineOwned] = useState<boolean>(false);
+  const [eLineExpectedReleaseAt, setELineExpectedReleaseAt] = useState<string>("");
+  const [eLineExpectedShipAt, setELineExpectedShipAt] = useState<string>("");
 
   // Holding group create/edit form
   const [editingHoldingGroupId, setEditingHoldingGroupId] = useState<number | null>(
@@ -235,17 +277,6 @@ export default function PendingPage() {
         sellerName: mSeller,
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
         purchaseDate: fromDateInputValue(mPurchaseDate),
-        subtype: mSubtype,
-        amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
-        depositPaidAt:
-          mDepositPaidAt.trim() === "" ? null : fromDateInputValue(mDepositPaidAt),
-        depositAmount:
-          mDepositAmount.trim() === "" ? null : Number(mDepositAmount),
-        finalPaid: mFinalPaid,
-        finalPaidAt:
-          mFinalPaidAt.trim() === "" ? null : fromDateInputValue(mFinalPaidAt),
-        finalAmount: mFinalAmount.trim() === "" ? null : Number(mFinalAmount),
-        owned: mOwned,
         status: mGroupStatus,
         notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
       }),
@@ -268,6 +299,34 @@ export default function PendingPage() {
         imageUrl: mItemImageUrl.trim() === "" ? null : mItemImageUrl.trim(),
         quantity: mItemQty.trim() === "" ? 1 : Number(mItemQty),
         notes: mItemNotes.trim() === "" ? null : mItemNotes.trim(),
+        subtype: mItemSubtype,
+        amountPaidTotal:
+          mItemAmountPaidTotal.trim() === ""
+            ? null
+            : Number(mItemAmountPaidTotal),
+        currency: mItemCurrency.trim() === "" ? "JPY" : mItemCurrency.trim(),
+        depositPaidAt:
+          mItemDepositPaidAt.trim() === ""
+            ? null
+            : fromDateInputValue(mItemDepositPaidAt),
+        depositAmount:
+          mItemDepositAmount.trim() === "" ? null : Number(mItemDepositAmount),
+        finalPaid: mItemFinalPaid,
+        finalPaidAt:
+          mItemFinalPaidAt.trim() === ""
+            ? null
+            : fromDateInputValue(mItemFinalPaidAt),
+        finalAmount:
+          mItemFinalAmount.trim() === "" ? null : Number(mItemFinalAmount),
+        owned: mItemOwned,
+        expectedReleaseAt:
+          mItemExpectedReleaseAt.trim() === ""
+            ? null
+            : fromDateInputValue(mItemExpectedReleaseAt),
+        expectedShipAt:
+          mItemExpectedShipAt.trim() === ""
+            ? null
+            : fromDateInputValue(mItemExpectedShipAt),
       }),
     });
 
@@ -279,14 +338,6 @@ export default function PendingPage() {
 
     setMSeller("");
     setMPlatform("");
-    setMAmountPaid("");
-    setMSubtype("full_payment_presale");
-    setMDepositPaidAt("");
-    setMDepositAmount("");
-    setMFinalPaid(false);
-    setMFinalPaidAt("");
-    setMFinalAmount("");
-    setMOwned(false);
     setMGroupStatus("open");
     setMGroupNotes("");
 
@@ -294,6 +345,17 @@ export default function PendingPage() {
     setMItemQty("1");
     setMItemImageUrl("");
     setMItemNotes("");
+    setMItemSubtype("full_payment_presale");
+    setMItemAmountPaidTotal("");
+    setMItemCurrency("JPY");
+    setMItemDepositPaidAt("");
+    setMItemDepositAmount("");
+    setMItemFinalPaid(false);
+    setMItemFinalPaidAt("");
+    setMItemFinalAmount("");
+    setMItemOwned(false);
+    setMItemExpectedReleaseAt("");
+    setMItemExpectedShipAt("");
 
     await loadMerchant();
   };
@@ -303,20 +365,23 @@ export default function PendingPage() {
     setMSeller("");
     setMPlatform("");
     setMPurchaseDate(toDateInputValue(new Date().toISOString()));
-    setMSubtype("full_payment_presale");
-    setMAmountPaid("");
-    setMDepositPaidAt("");
-    setMDepositAmount("");
-    setMFinalPaid(false);
-    setMFinalPaidAt("");
-    setMFinalAmount("");
-    setMOwned(false);
     setMGroupStatus("open");
     setMGroupNotes("");
     setMItemTitle("");
     setMItemQty("1");
     setMItemImageUrl("");
     setMItemNotes("");
+    setMItemSubtype("full_payment_presale");
+    setMItemAmountPaidTotal("");
+    setMItemCurrency("JPY");
+    setMItemDepositPaidAt("");
+    setMItemDepositAmount("");
+    setMItemFinalPaid(false);
+    setMItemFinalPaidAt("");
+    setMItemFinalAmount("");
+    setMItemOwned(false);
+    setMItemExpectedReleaseAt("");
+    setMItemExpectedShipAt("");
   };
 
   const startEditMerchantGroup = (g: MerchantPreorderGroup) => {
@@ -324,14 +389,6 @@ export default function PendingPage() {
     setMSeller(g.sellerName);
     setMPlatform(g.platform ?? "");
     setMPurchaseDate(toDateInputValue(g.purchaseDate));
-    setMSubtype(g.subtype);
-    setMAmountPaid(g.amountPaid != null ? String(g.amountPaid) : "");
-    setMDepositPaidAt(toDateInputValue(g.depositPaidAt));
-    setMDepositAmount(g.depositAmount != null ? String(g.depositAmount) : "");
-    setMFinalPaid(Boolean(g.finalPaid));
-    setMFinalPaidAt(toDateInputValue(g.finalPaidAt));
-    setMFinalAmount(g.finalAmount != null ? String(g.finalAmount) : "");
-    setMOwned(Boolean(g.owned));
     setMGroupStatus(g.status);
     setMGroupNotes(g.notes ?? "");
   };
@@ -350,17 +407,6 @@ export default function PendingPage() {
         sellerName: mSeller,
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
         purchaseDate: fromDateInputValue(mPurchaseDate),
-        subtype: mSubtype,
-        amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
-        depositPaidAt:
-          mDepositPaidAt.trim() === "" ? null : fromDateInputValue(mDepositPaidAt),
-        depositAmount:
-          mDepositAmount.trim() === "" ? null : Number(mDepositAmount),
-        finalPaid: mFinalPaid,
-        finalPaidAt:
-          mFinalPaidAt.trim() === "" ? null : fromDateInputValue(mFinalPaidAt),
-        finalAmount: mFinalAmount.trim() === "" ? null : Number(mFinalAmount),
-        owned: mOwned,
         status: mGroupStatus,
         notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
       }),
@@ -420,6 +466,34 @@ export default function PendingPage() {
         imageUrl: newLineImageUrl.trim() === "" ? null : newLineImageUrl.trim(),
         quantity: newLineQty.trim() === "" ? 1 : Number(newLineQty),
         notes: newLineNotes.trim() === "" ? null : newLineNotes.trim(),
+        subtype: newLineSubtype,
+        amountPaidTotal:
+          newLineAmountPaidTotal.trim() === ""
+            ? null
+            : Number(newLineAmountPaidTotal),
+        currency: newLineCurrency.trim() === "" ? "JPY" : newLineCurrency.trim(),
+        depositPaidAt:
+          newLineDepositPaidAt.trim() === ""
+            ? null
+            : fromDateInputValue(newLineDepositPaidAt),
+        depositAmount:
+          newLineDepositAmount.trim() === "" ? null : Number(newLineDepositAmount),
+        finalPaid: newLineFinalPaid,
+        finalPaidAt:
+          newLineFinalPaidAt.trim() === ""
+            ? null
+            : fromDateInputValue(newLineFinalPaidAt),
+        finalAmount:
+          newLineFinalAmount.trim() === "" ? null : Number(newLineFinalAmount),
+        owned: newLineOwned,
+        expectedReleaseAt:
+          newLineExpectedReleaseAt.trim() === ""
+            ? null
+            : fromDateInputValue(newLineExpectedReleaseAt),
+        expectedShipAt:
+          newLineExpectedShipAt.trim() === ""
+            ? null
+            : fromDateInputValue(newLineExpectedShipAt),
       }),
     });
 
@@ -432,6 +506,95 @@ export default function PendingPage() {
     setNewLineQty("1");
     setNewLineImageUrl("");
     setNewLineNotes("");
+    setNewLineSubtype("full_payment_presale");
+    setNewLineAmountPaidTotal("");
+    setNewLineCurrency("JPY");
+    setNewLineDepositPaidAt("");
+    setNewLineDepositAmount("");
+    setNewLineFinalPaid(false);
+    setNewLineFinalPaidAt("");
+    setNewLineFinalAmount("");
+    setNewLineOwned(false);
+    setNewLineExpectedReleaseAt("");
+    setNewLineExpectedShipAt("");
+    await loadMerchant();
+  };
+
+  const startEditMerchantLine = (it: MerchantPreorderLineItem) => {
+    setEditingMerchantLineId(it.id);
+    setELineTitle(it.title);
+    setELineQty(String(it.quantity ?? 1));
+    setELineImageUrl(it.imageUrl ?? "");
+    setELineNotes(it.notes ?? "");
+    setELineSubtype(it.subtype);
+    setELineAmountPaidTotal(it.amountPaidTotal != null ? String(it.amountPaidTotal) : "");
+    setELineCurrency(it.currency ?? "JPY");
+    setELineDepositPaidAt(toDateInputValue(it.depositPaidAt));
+    setELineDepositAmount(it.depositAmount != null ? String(it.depositAmount) : "");
+    setELineFinalPaid(Boolean(it.finalPaid));
+    setELineFinalPaidAt(toDateInputValue(it.finalPaidAt));
+    setELineFinalAmount(it.finalAmount != null ? String(it.finalAmount) : "");
+    setELineOwned(Boolean(it.owned));
+    setELineExpectedReleaseAt(toDateInputValue(it.expectedReleaseAt));
+    setELineExpectedShipAt(toDateInputValue(it.expectedShipAt));
+  };
+
+  const cancelEditMerchantLine = () => {
+    setEditingMerchantLineId(null);
+    setELineTitle("");
+    setELineQty("1");
+    setELineImageUrl("");
+    setELineNotes("");
+    setELineSubtype("full_payment_presale");
+    setELineAmountPaidTotal("");
+    setELineCurrency("JPY");
+    setELineDepositPaidAt("");
+    setELineDepositAmount("");
+    setELineFinalPaid(false);
+    setELineFinalPaidAt("");
+    setELineFinalAmount("");
+    setELineOwned(false);
+    setELineExpectedReleaseAt("");
+    setELineExpectedShipAt("");
+  };
+
+  const saveMerchantLine = async (id: number) => {
+    const res = await fetch(`/api/pending/merchant-line-items/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: eLineTitle,
+        imageUrl: eLineImageUrl.trim() === "" ? null : eLineImageUrl.trim(),
+        quantity: eLineQty.trim() === "" ? 1 : Number(eLineQty),
+        notes: eLineNotes.trim() === "" ? null : eLineNotes.trim(),
+        subtype: eLineSubtype,
+        amountPaidTotal:
+          eLineAmountPaidTotal.trim() === "" ? null : Number(eLineAmountPaidTotal),
+        currency: eLineCurrency.trim() === "" ? "JPY" : eLineCurrency.trim(),
+        depositPaidAt:
+          eLineDepositPaidAt.trim() === "" ? null : fromDateInputValue(eLineDepositPaidAt),
+        depositAmount:
+          eLineDepositAmount.trim() === "" ? null : Number(eLineDepositAmount),
+        finalPaid: eLineFinalPaid,
+        finalPaidAt:
+          eLineFinalPaidAt.trim() === "" ? null : fromDateInputValue(eLineFinalPaidAt),
+        finalAmount:
+          eLineFinalAmount.trim() === "" ? null : Number(eLineFinalAmount),
+        owned: eLineOwned,
+        expectedReleaseAt:
+          eLineExpectedReleaseAt.trim() === ""
+            ? null
+            : fromDateInputValue(eLineExpectedReleaseAt),
+        expectedShipAt:
+          eLineExpectedShipAt.trim() === "" ? null : fromDateInputValue(eLineExpectedShipAt),
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error ?? "Failed to save line item.");
+      return;
+    }
+    cancelEditMerchantLine();
     await loadMerchant();
   };
 
@@ -687,104 +850,6 @@ export default function PendingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Subtype</label>
-                  <select
-                    value={mSubtype}
-                    onChange={(e) => setMSubtype(e.target.value as MerchantPreorderSubtype)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  >
-                    <option value="full_payment_presale">Full payment presale</option>
-                    <option value="deposit_presale">Deposit presale</option>
-                  </select>
-                </div>
-
-                {mSubtype === "full_payment_presale" ? (
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-zinc-600">
-                      Total paid (optional)
-                    </label>
-                    <input
-                      type="number"
-                      value={mAmountPaid}
-                      onChange={(e) => setMAmountPaid(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                      placeholder="Optional"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Deposit paid at
-                      </label>
-                      <input
-                        type="date"
-                        value={mDepositPaidAt}
-                        onChange={(e) => setMDepositPaidAt(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Deposit amount
-                      </label>
-                      <input
-                        type="number"
-                        value={mDepositAmount}
-                        onChange={(e) => setMDepositAmount(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="Optional"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
-                        <input
-                          type="checkbox"
-                          checked={mFinalPaid}
-                          onChange={(e) => setMFinalPaid(e.target.checked)}
-                        />
-                        Final payment made
-                      </label>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Final paid at
-                      </label>
-                      <input
-                        type="date"
-                        value={mFinalPaidAt}
-                        onChange={(e) => setMFinalPaidAt(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        disabled={!mFinalPaid}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Final amount
-                      </label>
-                      <input
-                        type="number"
-                        value={mFinalAmount}
-                        onChange={(e) => setMFinalAmount(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="Optional"
-                        disabled={!mFinalPaid}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
-                        <input
-                          type="checkbox"
-                          checked={mOwned}
-                          onChange={(e) => setMOwned(e.target.checked)}
-                        />
-                        Owned (received)
-                      </label>
-                    </div>
-                  </>
-                )}
-
-                <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">
                     Group status
                   </label>
@@ -834,6 +899,135 @@ export default function PendingPage() {
                         min={1}
                         value={mItemQty}
                         onChange={(e) => setMItemQty(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Subtype</label>
+                      <select
+                        value={mItemSubtype}
+                        onChange={(e) =>
+                          setMItemSubtype(e.target.value as MerchantPreorderSubtype)
+                        }
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      >
+                        <option value="full_payment_presale">Full payment presale</option>
+                        <option value="deposit_presale">Deposit presale</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Currency</label>
+                      <input
+                        value={mItemCurrency}
+                        onChange={(e) => setMItemCurrency(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="JPY"
+                      />
+                    </div>
+                    {mItemSubtype === "full_payment_presale" ? (
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="block text-xs font-medium text-zinc-600">
+                          Amount paid total (optional)
+                        </label>
+                        <input
+                          type="number"
+                          value={mItemAmountPaidTotal}
+                          onChange={(e) => setMItemAmountPaidTotal(e.target.value)}
+                          className="w-full rounded border px-2 py-1 text-sm"
+                          placeholder="Optional"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-zinc-600">
+                            Deposit paid at
+                          </label>
+                          <input
+                            type="date"
+                            value={mItemDepositPaidAt}
+                            onChange={(e) => setMItemDepositPaidAt(e.target.value)}
+                            className="w-full rounded border px-2 py-1 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-zinc-600">
+                            Deposit amount
+                          </label>
+                          <input
+                            type="number"
+                            value={mItemDepositAmount}
+                            onChange={(e) => setMItemDepositAmount(e.target.value)}
+                            className="w-full rounded border px-2 py-1 text-sm"
+                            placeholder="Optional"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
+                            <input
+                              type="checkbox"
+                              checked={mItemFinalPaid}
+                              onChange={(e) => setMItemFinalPaid(e.target.checked)}
+                            />
+                            Final payment made
+                          </label>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-zinc-600">
+                            Final paid at
+                          </label>
+                          <input
+                            type="date"
+                            value={mItemFinalPaidAt}
+                            onChange={(e) => setMItemFinalPaidAt(e.target.value)}
+                            className="w-full rounded border px-2 py-1 text-sm"
+                            disabled={!mItemFinalPaid}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-zinc-600">
+                            Final amount
+                          </label>
+                          <input
+                            type="number"
+                            value={mItemFinalAmount}
+                            onChange={(e) => setMItemFinalAmount(e.target.value)}
+                            className="w-full rounded border px-2 py-1 text-sm"
+                            placeholder="Optional"
+                            disabled={!mItemFinalPaid}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
+                            <input
+                              type="checkbox"
+                              checked={mItemOwned}
+                              onChange={(e) => setMItemOwned(e.target.checked)}
+                            />
+                            Owned
+                          </label>
+                        </div>
+                      </>
+                    )}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Expected release (optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={mItemExpectedReleaseAt}
+                        onChange={(e) => setMItemExpectedReleaseAt(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Expected ship (optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={mItemExpectedShipAt}
+                        onChange={(e) => setMItemExpectedShipAt(e.target.value)}
                         className="w-full rounded border px-2 py-1 text-sm"
                       />
                     </div>
@@ -906,23 +1100,13 @@ export default function PendingPage() {
                             {g.platform ? ` · ${g.platform}` : ""}
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
-                            {g.items.length} item{g.items.length === 1 ? "" : "s"} ·{" "}
-                            {g.subtype === "deposit_presale" ? "deposit presale" : "full payment"}
+                            {g.items.length} item{g.items.length === 1 ? "" : "s"}
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
                             Purchase: {toDateInputValue(g.purchaseDate)} · waiting {waitingDays} days
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
                             Open: {openCount}/{g.items.length}
-                            {g.subtype === "deposit_presale" ? (
-                              <>
-                                {" "}
-                                · Owned: {g.owned ? "Yes" : "No"} · Final paid:{" "}
-                                {g.finalPaid ? "Yes" : "No"}
-                              </>
-                            ) : g.amountPaid != null ? (
-                              <> · Total paid: {g.amountPaid.toLocaleString()}</>
-                            ) : null}
                           </div>
                           {g.notes ? (
                             <div className="mt-1 text-xs text-zinc-600 line-clamp-2">
@@ -960,6 +1144,17 @@ export default function PendingPage() {
                               setNewLineQty("1");
                               setNewLineImageUrl("");
                               setNewLineNotes("");
+                              setNewLineSubtype("full_payment_presale");
+                              setNewLineAmountPaidTotal("");
+                              setNewLineCurrency("JPY");
+                              setNewLineDepositPaidAt("");
+                              setNewLineDepositAmount("");
+                              setNewLineFinalPaid(false);
+                              setNewLineFinalPaidAt("");
+                              setNewLineFinalAmount("");
+                              setNewLineOwned(false);
+                              setNewLineExpectedReleaseAt("");
+                              setNewLineExpectedShipAt("");
                             }}
                           >
                             {expanded ? "Hide" : "View"}
@@ -1005,13 +1200,184 @@ export default function PendingPage() {
                                       )}
                                     </div>
                                     <div>
-                                      <div className="font-medium text-zinc-900">
-                                        {it.title}{" "}
-                                        <span className="text-zinc-500">×{it.quantity}</span>
-                                      </div>
-                                      {it.notes ? (
-                                        <div className="text-zinc-600 line-clamp-2">{it.notes}</div>
-                                      ) : null}
+                                      {editingMerchantLineId === it.id ? (
+                                        <div className="space-y-2">
+                                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                            <input
+                                              value={eLineTitle}
+                                              onChange={(e) => setELineTitle(e.target.value)}
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Title"
+                                            />
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={eLineQty}
+                                              onChange={(e) => setELineQty(e.target.value)}
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Qty"
+                                            />
+                                          </div>
+                                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                            <select
+                                              value={eLineSubtype}
+                                              onChange={(e) =>
+                                                setELineSubtype(
+                                                  e.target.value as MerchantPreorderSubtype
+                                                )
+                                              }
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                            >
+                                              <option value="full_payment_presale">
+                                                Full payment presale
+                                              </option>
+                                              <option value="deposit_presale">Deposit presale</option>
+                                            </select>
+                                            <input
+                                              value={eLineCurrency}
+                                              onChange={(e) => setELineCurrency(e.target.value)}
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Currency (JPY)"
+                                            />
+                                          </div>
+
+                                          {eLineSubtype === "full_payment_presale" ? (
+                                            <input
+                                              type="number"
+                                              value={eLineAmountPaidTotal}
+                                              onChange={(e) => setELineAmountPaidTotal(e.target.value)}
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Amount paid total (optional)"
+                                            />
+                                          ) : (
+                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                              <input
+                                                type="date"
+                                                value={eLineDepositPaidAt}
+                                                onChange={(e) => setELineDepositPaidAt(e.target.value)}
+                                                className="w-full rounded border px-2 py-1 text-sm"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={eLineDepositAmount}
+                                                onChange={(e) =>
+                                                  setELineDepositAmount(e.target.value)
+                                                }
+                                                className="w-full rounded border px-2 py-1 text-sm"
+                                                placeholder="Deposit amount (optional)"
+                                              />
+                                              <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={eLineFinalPaid}
+                                                  onChange={(e) =>
+                                                    setELineFinalPaid(e.target.checked)
+                                                  }
+                                                />
+                                                Final paid
+                                              </label>
+                                              <input
+                                                type="date"
+                                                value={eLineFinalPaidAt}
+                                                onChange={(e) => setELineFinalPaidAt(e.target.value)}
+                                                className="w-full rounded border px-2 py-1 text-sm"
+                                                disabled={!eLineFinalPaid}
+                                              />
+                                              <input
+                                                type="number"
+                                                value={eLineFinalAmount}
+                                                onChange={(e) => setELineFinalAmount(e.target.value)}
+                                                className="w-full rounded border px-2 py-1 text-sm"
+                                                placeholder="Final amount (optional)"
+                                                disabled={!eLineFinalPaid}
+                                              />
+                                              <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={eLineOwned}
+                                                  onChange={(e) =>
+                                                    setELineOwned(e.target.checked)
+                                                  }
+                                                />
+                                                Owned
+                                              </label>
+                                            </div>
+                                          )}
+
+                                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                            <input
+                                              type="date"
+                                              value={eLineExpectedReleaseAt}
+                                              onChange={(e) =>
+                                                setELineExpectedReleaseAt(e.target.value)
+                                              }
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Expected release"
+                                            />
+                                            <input
+                                              type="date"
+                                              value={eLineExpectedShipAt}
+                                              onChange={(e) =>
+                                                setELineExpectedShipAt(e.target.value)
+                                              }
+                                              className="w-full rounded border px-2 py-1 text-sm"
+                                              placeholder="Expected ship"
+                                            />
+                                          </div>
+
+                                          <input
+                                            value={eLineImageUrl}
+                                            onChange={(e) => setELineImageUrl(e.target.value)}
+                                            className="w-full rounded border px-2 py-1 text-sm"
+                                            placeholder="Image URL (optional)"
+                                          />
+                                          <input
+                                            value={eLineNotes}
+                                            onChange={(e) => setELineNotes(e.target.value)}
+                                            className="w-full rounded border px-2 py-1 text-sm"
+                                            placeholder="Notes (optional)"
+                                          />
+                                          <div className="flex gap-2">
+                                            <button
+                                              className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                                              onClick={() => saveMerchantLine(it.id)}
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                                              onClick={cancelEditMerchantLine}
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="font-medium text-zinc-900">
+                                            {it.title}{" "}
+                                            <span className="text-zinc-500">×{it.quantity}</span>
+                                          </div>
+                                          <div className="mt-0.5 text-[11px] text-zinc-600">
+                                            {it.subtype === "deposit_presale"
+                                              ? `Deposit · Owned: ${it.owned ? "Yes" : "No"}`
+                                              : `Full payment`}
+                                            {it.expectedReleaseAt
+                                              ? ` · Release: ${toDateInputValue(
+                                                  it.expectedReleaseAt
+                                                )}`
+                                              : ""}
+                                            {it.expectedShipAt
+                                              ? ` · Ship: ${toDateInputValue(it.expectedShipAt)}`
+                                              : ""}
+                                          </div>
+                                          {it.notes ? (
+                                            <div className="text-zinc-600 line-clamp-2">
+                                              {it.notes}
+                                            </div>
+                                          ) : null}
+                                        </>
+                                      )}
                                     </div>
                                   </div>
 
@@ -1019,6 +1385,15 @@ export default function PendingPage() {
                                     <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
                                       {it.received ? "received" : "waiting"}
                                     </span>
+                                    {editingMerchantLineId !== it.id ? (
+                                      <button
+                                        type="button"
+                                        className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
+                                        onClick={() => startEditMerchantLine(it)}
+                                      >
+                                        Edit
+                                      </button>
+                                    ) : null}
                                     {!it.received ? (
                                       <button
                                         type="button"
@@ -1052,6 +1427,96 @@ export default function PendingPage() {
                                 onChange={(e) => setNewLineQty(e.target.value)}
                                 className="w-full rounded border px-2 py-1 text-sm"
                                 placeholder="Qty"
+                              />
+                              <select
+                                value={newLineSubtype}
+                                onChange={(e) =>
+                                  setNewLineSubtype(e.target.value as MerchantPreorderSubtype)
+                                }
+                                className="w-full rounded border px-2 py-1 text-sm"
+                              >
+                                <option value="full_payment_presale">Full payment presale</option>
+                                <option value="deposit_presale">Deposit presale</option>
+                              </select>
+                              <input
+                                value={newLineCurrency}
+                                onChange={(e) => setNewLineCurrency(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Currency (JPY)"
+                              />
+                            </div>
+                            {newLineSubtype === "full_payment_presale" ? (
+                              <div className="mt-2">
+                                <input
+                                  type="number"
+                                  value={newLineAmountPaidTotal}
+                                  onChange={(e) => setNewLineAmountPaidTotal(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  placeholder="Amount paid total (optional)"
+                                />
+                              </div>
+                            ) : (
+                              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <input
+                                  type="date"
+                                  value={newLineDepositPaidAt}
+                                  onChange={(e) => setNewLineDepositPaidAt(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                />
+                                <input
+                                  type="number"
+                                  value={newLineDepositAmount}
+                                  onChange={(e) => setNewLineDepositAmount(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  placeholder="Deposit amount (optional)"
+                                />
+                                <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={newLineFinalPaid}
+                                    onChange={(e) => setNewLineFinalPaid(e.target.checked)}
+                                  />
+                                  Final paid
+                                </label>
+                                <input
+                                  type="date"
+                                  value={newLineFinalPaidAt}
+                                  onChange={(e) => setNewLineFinalPaidAt(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  disabled={!newLineFinalPaid}
+                                />
+                                <input
+                                  type="number"
+                                  value={newLineFinalAmount}
+                                  onChange={(e) => setNewLineFinalAmount(e.target.value)}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  placeholder="Final amount (optional)"
+                                  disabled={!newLineFinalPaid}
+                                />
+                                <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={newLineOwned}
+                                    onChange={(e) => setNewLineOwned(e.target.checked)}
+                                  />
+                                  Owned
+                                </label>
+                              </div>
+                            )}
+                            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <input
+                                type="date"
+                                value={newLineExpectedReleaseAt}
+                                onChange={(e) => setNewLineExpectedReleaseAt(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Expected release"
+                              />
+                              <input
+                                type="date"
+                                value={newLineExpectedShipAt}
+                                onChange={(e) => setNewLineExpectedShipAt(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Expected ship"
                               />
                             </div>
                             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">

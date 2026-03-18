@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Already received" }, { status: 400 });
   }
 
-  if (line.group.subtype === "deposit_presale" && !line.group.owned) {
+  if (line.subtype === "deposit_presale" && !line.owned) {
     return NextResponse.json(
       { error: "Deposit presale must be owned=true before receiving" },
       { status: 400 }
@@ -37,21 +37,15 @@ export async function POST(
       ? await makeThumbnailDataUrl(line.imageUrl)
       : null;
 
-  // Conservative mapping:
+  // Conservative mapping (1 Collection item per merchant order item):
   // - Deposit presale: keep unit price 0 (payment facts stay on Pending side).
-  // - Full payment: if group.amountPaid exists, distribute by total quantity across the order.
-  //   Otherwise fall back to 0.
+  // - Full payment: if amountPaidTotal is provided for this item, derive unit price from it.
+  const qty = line.quantity ?? 1;
   let unitPrice = 0;
-  if (line.group.subtype === "full_payment_presale" && line.group.amountPaid) {
-    const totalQty = await prisma.merchantPreorderLineItem.aggregate({
-      where: { groupId: line.groupId },
-      _sum: { quantity: true },
-    });
-    const denom = Math.max(1, totalQty._sum.quantity ?? 1);
-    unitPrice = line.group.amountPaid / denom;
+  if (line.subtype === "full_payment_presale" && line.amountPaidTotal != null) {
+    unitPrice = line.amountPaidTotal / Math.max(1, qty);
   }
 
-  const qty = line.quantity ?? 1;
   const total = unitPrice * qty;
 
   try {
@@ -64,7 +58,7 @@ export async function POST(
           price: unitPrice,
           quantity: qty,
           totalAmount: total,
-          currency: "JPY",
+          currency: line.currency ?? "JPY",
           status: "OWNED",
           orderDate: line.group.purchaseDate,
           sourceType: "MERCHANT_PREORDER",

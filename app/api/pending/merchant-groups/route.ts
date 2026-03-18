@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  MerchantPreorderGroupStatus,
-  MerchantPreorderSubtype,
-} from "@prisma/client";
-
-function isSubtype(v: unknown): v is MerchantPreorderSubtype {
-  return (
-    typeof v === "string" &&
-    (Object.values(MerchantPreorderSubtype) as string[]).includes(v)
-  );
-}
+import { MerchantPreorderGroupStatus } from "@prisma/client";
 
 function isGroupStatus(v: unknown): v is MerchantPreorderGroupStatus {
   return (
@@ -37,10 +27,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const subtype: MerchantPreorderSubtype = isSubtype(body.subtype)
-    ? body.subtype
-    : "full_payment_presale";
-
   const status: MerchantPreorderGroupStatus = isGroupStatus(body.status)
     ? body.status
     : "open";
@@ -50,23 +36,6 @@ export async function POST(request: NextRequest) {
       sellerName: body.sellerName,
       platform: body.platform ?? null,
       purchaseDate: new Date(body.purchaseDate),
-      subtype,
-      amountPaid:
-        body.amountPaid === undefined || body.amountPaid === null
-          ? null
-          : Number(body.amountPaid),
-      depositPaidAt: body.depositPaidAt ? new Date(body.depositPaidAt) : null,
-      depositAmount:
-        body.depositAmount === undefined || body.depositAmount === null
-          ? null
-          : Number(body.depositAmount),
-      finalPaid: body.finalPaid ?? false,
-      finalPaidAt: body.finalPaidAt ? new Date(body.finalPaidAt) : null,
-      finalAmount:
-        body.finalAmount === undefined || body.finalAmount === null
-          ? null
-          : Number(body.finalAmount),
-      owned: body.owned ?? false,
       status,
       notes: body.notes ?? null,
     },

@@ -143,12 +143,9 @@ model MerchantPreorderGroup {
   sellerName    String
   platform      String?
   purchaseDate  DateTime
+  // TEMP (legacy): will be migrated to line items, then removed
   subtype       MerchantPreorderSubtype @default(full_payment_presale)
-
-  // Full-payment presale order total (optional)
   amountPaid    Float?
-
-  // Deposit-presale factual fields (group-level)
   depositPaidAt DateTime?
   depositAmount Float?
   finalPaid     Boolean                @default(false)
@@ -171,6 +168,24 @@ model MerchantPreorderLineItem {
   imageUrl   String?
   quantity   Int                  @default(1)
   notes      String?
+
+  // Transaction details are item-level
+  subtype      MerchantPreorderSubtype @default(full_payment_presale)
+  amountPaidTotal Float?
+  currency     String               @default("JPY")
+
+  // Deposit-presale factual fields
+  depositPaidAt DateTime?
+  depositAmount Float?
+  finalPaid     Boolean              @default(false)
+  finalPaidAt   DateTime?
+  finalAmount   Float?
+  owned         Boolean              @default(false)
+
+  // Optional expected timing (not commitments)
+  expectedReleaseAt DateTime?
+  expectedShipAt    DateTime?
+
   received   Boolean              @default(false)
   createdAt  DateTime             @default(now())
   updatedAt  DateTime             @updatedAt
