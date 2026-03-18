@@ -15,19 +15,31 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  if (preorder.subtype === "deposit_presale" && !preorder.owned) {
+    return NextResponse.json(
+      { error: "Deposit presale must be marked owned before moving to Collection." },
+      { status: 400 }
+    );
+  }
+
   const imageUrl = preorder.imageUrl ?? null;
   const imageThumbUrl = await makeThumbnailDataUrl(imageUrl);
 
   // Conservative conflict handling: only flip preorder status after item creation succeeds.
   const updated = await prisma.$transaction(async (tx) => {
+    const quantity = Math.max(1, Number(preorder.quantity ?? 1));
+    const shouldCopyMoney = preorder.subtype === "full_payment_presale";
+    const totalAmount = shouldCopyMoney ? Number(preorder.amountPaid ?? 0) : 0;
+    const unitPrice = quantity > 0 ? totalAmount / quantity : totalAmount;
+
     await tx.item.create({
       data: {
         itemName: preorder.name,
         platform: preorder.platform ?? null,
         shop: preorder.sellerName,
-        price: Number(preorder.amountPaid ?? 0),
-        quantity: 1,
-        totalAmount: Number(preorder.amountPaid ?? 0),
+        price: unitPrice,
+        quantity,
+        totalAmount,
         currency: "JPY",
         status: "OWNED",
         orderDate: preorder.purchaseDate,
@@ -40,7 +52,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
     return await tx.merchantPreorderItem.update({
       where: { id },
-      data: { status: "received" },
+      data: { status: "received", owned: true },
     });
   });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { MerchantPreorderStatus } from "@prisma/client";
+import { MerchantPreorderStatus, MerchantPreorderSubtype } from "@prisma/client";
 
 export async function GET() {
   const items = await prisma.merchantPreorderItem.findMany({
@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
       ? body.status
       : "ordered";
 
+  const subtype: MerchantPreorderSubtype =
+    body.subtype && Object.values(MerchantPreorderSubtype).includes(body.subtype)
+      ? body.subtype
+      : "full_payment_presale";
+
   const created = await prisma.merchantPreorderItem.create({
     data: {
       name: body.name,
@@ -35,6 +40,23 @@ export async function POST(request: NextRequest) {
         body.amountPaid === undefined || body.amountPaid === null
           ? null
           : Number(body.amountPaid),
+      subtype,
+      quantity:
+        body.quantity === undefined || body.quantity === null
+          ? 1
+          : Math.max(1, Number(body.quantity)),
+      depositPaidAt: body.depositPaidAt ? new Date(body.depositPaidAt) : null,
+      depositAmount:
+        body.depositAmount === undefined || body.depositAmount === null
+          ? null
+          : Number(body.depositAmount),
+      finalPaid: body.finalPaid ?? false,
+      finalPaidAt: body.finalPaidAt ? new Date(body.finalPaidAt) : null,
+      finalAmount:
+        body.finalAmount === undefined || body.finalAmount === null
+          ? null
+          : Number(body.finalAmount),
+      owned: body.owned ?? false,
       status,
       note: body.note ?? null,
     },

@@ -8,6 +8,8 @@ type MerchantPreorderStatus =
   | "fully_paid"
   | "received";
 
+type MerchantPreorderSubtype = "full_payment_presale" | "deposit_presale";
+
 type HoldingOrderStatus = "holding" | "ready_to_ship" | "shipped" | "received";
 type HoldingOrderTimeMode = "duration" | "fixed_date" | "none";
 
@@ -19,6 +21,14 @@ type MerchantPreorderItem = {
   platform: string | null;
   purchaseDate: string;
   amountPaid: number | null;
+  subtype: MerchantPreorderSubtype;
+  quantity: number;
+  depositPaidAt: string | null;
+  depositAmount: number | null;
+  finalPaid: boolean;
+  finalPaidAt: string | null;
+  finalAmount: number | null;
+  owned: boolean;
   status: MerchantPreorderStatus;
   note: string | null;
 };
@@ -105,6 +115,16 @@ export default function PendingPage() {
   );
   const [mAmountPaid, setMAmountPaid] = useState<string>("");
   const [mStatus, setMStatus] = useState<MerchantPreorderStatus>("ordered");
+  const [mSubtype, setMSubtype] = useState<MerchantPreorderSubtype>(
+    "full_payment_presale"
+  );
+  const [mQuantity, setMQuantity] = useState<string>("1");
+  const [mDepositPaidAt, setMDepositPaidAt] = useState<string>("");
+  const [mDepositAmount, setMDepositAmount] = useState<string>("");
+  const [mFinalPaid, setMFinalPaid] = useState<boolean>(false);
+  const [mFinalPaidAt, setMFinalPaidAt] = useState<string>("");
+  const [mFinalAmount, setMFinalAmount] = useState<string>("");
+  const [mOwned, setMOwned] = useState<boolean>(false);
   const [mImageUrl, setMImageUrl] = useState<string>("");
   const [mNote, setMNote] = useState<string>("");
 
@@ -185,7 +205,18 @@ export default function PendingPage() {
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
         purchaseDate: fromDateInputValue(mPurchaseDate),
         amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
-        status: mStatus,
+        status: mSubtype === "deposit_presale" ? "ordered" : mStatus,
+        subtype: mSubtype,
+        quantity: mQuantity.trim() === "" ? 1 : Number(mQuantity),
+        depositPaidAt:
+          mDepositPaidAt.trim() === "" ? null : fromDateInputValue(mDepositPaidAt),
+        depositAmount:
+          mDepositAmount.trim() === "" ? null : Number(mDepositAmount),
+        finalPaid: mFinalPaid,
+        finalPaidAt:
+          mFinalPaidAt.trim() === "" ? null : fromDateInputValue(mFinalPaidAt),
+        finalAmount: mFinalAmount.trim() === "" ? null : Number(mFinalAmount),
+        owned: mOwned,
         imageUrl: mImageUrl.trim() === "" ? null : mImageUrl.trim(),
         note: mNote.trim() === "" ? null : mNote.trim(),
       }),
@@ -195,6 +226,14 @@ export default function PendingPage() {
     setMPlatform("");
     setMAmountPaid("");
     setMStatus("ordered");
+    setMSubtype("full_payment_presale");
+    setMQuantity("1");
+    setMDepositPaidAt("");
+    setMDepositAmount("");
+    setMFinalPaid(false);
+    setMFinalPaidAt("");
+    setMFinalAmount("");
+    setMOwned(false);
     setMImageUrl("");
     setMNote("");
     await loadMerchant();
@@ -217,7 +256,13 @@ export default function PendingPage() {
   };
 
   const markMerchantReceived = async (id: number) => {
-    await fetch(`/api/pending/merchant/${id}/mark-received`, { method: "POST" });
+    const res = await fetch(`/api/pending/merchant/${id}/mark-received`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      alert(data?.error ?? "Failed to move to Collection. Preorder status was not changed.");
+    }
     await loadMerchant();
   };
 
@@ -479,6 +524,17 @@ export default function PendingPage() {
                   />
                 </div>
                 <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Subtype</label>
+                  <select
+                    value={mSubtype}
+                    onChange={(e) => setMSubtype(e.target.value as MerchantPreorderSubtype)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  >
+                    <option value="full_payment_presale">Full payment presale</option>
+                    <option value="deposit_presale">Deposit presale</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">Platform</label>
                   <input
                     value={mPlatform}
@@ -496,29 +552,108 @@ export default function PendingPage() {
                     className="w-full rounded border px-2 py-1 text-sm"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Amount paid</label>
-                  <input
-                    type="number"
-                    value={mAmountPaid}
-                    onChange={(e) => setMAmountPaid(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Status</label>
-                  <select
-                    value={mStatus}
-                    onChange={(e) => setMStatus(e.target.value as MerchantPreorderStatus)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  >
-                    <option value="ordered">ordered</option>
-                    <option value="pending_final_payment">pending_final_payment</option>
-                    <option value="fully_paid">fully_paid</option>
-                    <option value="received">received</option>
-                  </select>
-                </div>
+                {mSubtype === "full_payment_presale" ? (
+                  <>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Quantity</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={mQuantity}
+                        onChange={(e) => setMQuantity(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Total paid (optional)
+                      </label>
+                      <input
+                        type="number"
+                        value={mAmountPaid}
+                        onChange={(e) => setMAmountPaid(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Status</label>
+                      <select
+                        value={mStatus}
+                        onChange={(e) => setMStatus(e.target.value as MerchantPreorderStatus)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      >
+                        <option value="ordered">ordered</option>
+                        <option value="pending_final_payment">pending_final_payment</option>
+                        <option value="fully_paid">fully_paid</option>
+                        <option value="received">received</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Deposit paid at</label>
+                      <input
+                        type="date"
+                        value={mDepositPaidAt}
+                        onChange={(e) => setMDepositPaidAt(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Deposit amount</label>
+                      <input
+                        type="number"
+                        value={mDepositAmount}
+                        onChange={(e) => setMDepositAmount(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
+                        <input
+                          type="checkbox"
+                          checked={mFinalPaid}
+                          onChange={(e) => setMFinalPaid(e.target.checked)}
+                        />
+                        Final payment made
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Final paid at</label>
+                      <input
+                        type="date"
+                        value={mFinalPaidAt}
+                        onChange={(e) => setMFinalPaidAt(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        disabled={!mFinalPaid}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Final amount</label>
+                      <input
+                        type="number"
+                        value={mFinalAmount}
+                        onChange={(e) => setMFinalAmount(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Optional"
+                        disabled={!mFinalPaid}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
+                        <input
+                          type="checkbox"
+                          checked={mOwned}
+                          onChange={(e) => setMOwned(e.target.checked)}
+                        />
+                        Owned (received)
+                      </label>
+                    </div>
+                  </>
+                )}
                 <div className="space-y-1 sm:col-span-2">
                   <label className="block text-xs font-medium text-zinc-600">Image URL (optional)</label>
                   <input
@@ -619,6 +754,57 @@ export default function PendingPage() {
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
+                              <select
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                value={m.subtype}
+                                onChange={(e) =>
+                                  setMerchant((prev) =>
+                                    prev.map((x) =>
+                                      x.id === m.id
+                                        ? {
+                                            ...x,
+                                            subtype: e.target.value as MerchantPreorderSubtype,
+                                          }
+                                        : x
+                                    )
+                                  )
+                                }
+                              >
+                                <option value="full_payment_presale">
+                                  Full payment presale
+                                </option>
+                                <option value="deposit_presale">Deposit presale</option>
+                              </select>
+                              {m.subtype === "full_payment_presale" ? (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={m.quantity ?? 1}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              quantity:
+                                                e.target.value.trim() === ""
+                                                  ? 1
+                                                  : Math.max(1, Number(e.target.value)),
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  placeholder="Qty"
+                                />
+                              ) : (
+                                <div className="text-xs text-zinc-600">
+                                  Fact-based payment tracking
+                                </div>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="date"
                                 className="w-full rounded border px-2 py-1 text-sm"
@@ -633,46 +819,174 @@ export default function PendingPage() {
                                   )
                                 }
                               />
-                              <input
-                                type="number"
+                              {m.subtype === "full_payment_presale" ? (
+                                <input
+                                  type="number"
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={m.amountPaid ?? ""}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              amountPaid:
+                                                e.target.value.trim() === ""
+                                                  ? null
+                                                  : Number(e.target.value),
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  placeholder="Total paid"
+                                />
+                              ) : (
+                                <input
+                                  type="date"
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={toDateInputValue(m.depositPaidAt)}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              depositPaidAt: e.target.value
+                                                ? fromDateInputValue(e.target.value)
+                                                : null,
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  placeholder="Deposit paid at"
+                                />
+                              )}
+                            </div>
+                            {m.subtype === "full_payment_presale" ? (
+                              <select
                                 className="w-full rounded border px-2 py-1 text-sm"
-                                value={m.amountPaid ?? ""}
+                                value={m.status}
                                 onChange={(e) =>
                                   setMerchant((prev) =>
                                     prev.map((x) =>
                                       x.id === m.id
                                         ? {
                                             ...x,
-                                            amountPaid:
-                                              e.target.value.trim() === ""
-                                                ? null
-                                                : Number(e.target.value),
+                                            status: e.target.value as MerchantPreorderStatus,
                                           }
                                         : x
                                     )
                                   )
                                 }
-                                placeholder="Amount paid"
-                              />
-                            </div>
-                            <select
-                              className="w-full rounded border px-2 py-1 text-sm"
-                              value={m.status}
-                              onChange={(e) =>
-                                setMerchant((prev) =>
-                                  prev.map((x) =>
-                                    x.id === m.id
-                                      ? { ...x, status: e.target.value as MerchantPreorderStatus }
-                                      : x
-                                  )
-                                )
-                              }
-                            >
-                              <option value="ordered">ordered</option>
-                              <option value="pending_final_payment">pending_final_payment</option>
-                              <option value="fully_paid">fully_paid</option>
-                              <option value="received">received</option>
-                            </select>
+                              >
+                                <option value="ordered">ordered</option>
+                                <option value="pending_final_payment">
+                                  pending_final_payment
+                                </option>
+                                <option value="fully_paid">fully_paid</option>
+                                <option value="received">received</option>
+                              </select>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="number"
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={m.depositAmount ?? ""}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              depositAmount:
+                                                e.target.value.trim() === ""
+                                                  ? null
+                                                  : Number(e.target.value),
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  placeholder="Deposit amount"
+                                />
+                                <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(m.finalPaid)}
+                                    onChange={(e) =>
+                                      setMerchant((prev) =>
+                                        prev.map((x) =>
+                                          x.id === m.id
+                                            ? { ...x, finalPaid: e.target.checked }
+                                            : x
+                                        )
+                                      )
+                                    }
+                                  />
+                                  Final paid
+                                </label>
+                                <input
+                                  type="date"
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={toDateInputValue(m.finalPaidAt)}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              finalPaidAt: e.target.value
+                                                ? fromDateInputValue(e.target.value)
+                                                : null,
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  disabled={!m.finalPaid}
+                                />
+                                <input
+                                  type="number"
+                                  className="w-full rounded border px-2 py-1 text-sm"
+                                  value={m.finalAmount ?? ""}
+                                  onChange={(e) =>
+                                    setMerchant((prev) =>
+                                      prev.map((x) =>
+                                        x.id === m.id
+                                          ? {
+                                              ...x,
+                                              finalAmount:
+                                                e.target.value.trim() === ""
+                                                  ? null
+                                                  : Number(e.target.value),
+                                            }
+                                          : x
+                                      )
+                                    )
+                                  }
+                                  placeholder="Final amount"
+                                  disabled={!m.finalPaid}
+                                />
+                                <label className="col-span-2 inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(m.owned)}
+                                    onChange={(e) =>
+                                      setMerchant((prev) =>
+                                        prev.map((x) =>
+                                          x.id === m.id
+                                            ? { ...x, owned: e.target.checked }
+                                            : x
+                                        )
+                                      )
+                                    }
+                                  />
+                                  Owned (received)
+                                </label>
+                              </div>
+                            )}
                             <input
                               className="w-full rounded border px-2 py-1 text-sm"
                               value={m.imageUrl ?? ""}
@@ -735,7 +1049,15 @@ export default function PendingPage() {
 
                             <div className="mt-1 flex items-center justify-between gap-2">
                               <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
-                                {m.status}
+                                {m.subtype === "deposit_presale"
+                                  ? m.owned
+                                    ? "Owned"
+                                    : m.finalPaid
+                                      ? "Final paid (waiting)"
+                                      : m.depositPaidAt || m.depositAmount
+                                        ? "Deposit paid"
+                                        : "Ordered"
+                                  : m.status}
                               </span>
                               <div className="flex flex-wrap gap-1 text-[11px]">
                                 <button

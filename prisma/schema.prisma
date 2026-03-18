@@ -17,6 +17,11 @@ enum MerchantPreorderStatus {
   received
 }
 
+enum MerchantPreorderSubtype {
+  full_payment_presale
+  deposit_presale
+}
+
 enum HoldingOrderStatus {
   holding
   ready_to_ship
@@ -112,6 +117,15 @@ model MerchantPreorderItem {
   platform     String?
   purchaseDate DateTime
   amountPaid   Float?
+  subtype      MerchantPreorderSubtype @default(full_payment_presale)
+  quantity     Int                    @default(1)
+  // Deposit-presale factual fields (future timing is often unknown)
+  depositPaidAt DateTime?
+  depositAmount Float?
+  finalPaid     Boolean              @default(false)
+  finalPaidAt   DateTime?
+  finalAmount   Float?
+  owned         Boolean              @default(false)
   status       MerchantPreorderStatus @default(ordered)
   note         String?
   createdAt    DateTime               @default(now())
