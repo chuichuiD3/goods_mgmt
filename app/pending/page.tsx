@@ -106,6 +106,9 @@ export default function PendingPage() {
   const [expandedMerchantGroupId, setExpandedMerchantGroupId] = useState<
     number | null
   >(null);
+  const [editingMerchantGroupId, setEditingMerchantGroupId] = useState<number | null>(
+    null
+  );
 
   const [holding, setHolding] = useState<HoldingOrderGroup[]>([]);
   const [holdingLoading, setHoldingLoading] = useState(false);
@@ -292,6 +295,93 @@ export default function PendingPage() {
     setMItemImageUrl("");
     setMItemNotes("");
 
+    await loadMerchant();
+  };
+
+  const cancelEditMerchantGroup = () => {
+    setEditingMerchantGroupId(null);
+    setMSeller("");
+    setMPlatform("");
+    setMPurchaseDate(toDateInputValue(new Date().toISOString()));
+    setMSubtype("full_payment_presale");
+    setMAmountPaid("");
+    setMDepositPaidAt("");
+    setMDepositAmount("");
+    setMFinalPaid(false);
+    setMFinalPaidAt("");
+    setMFinalAmount("");
+    setMOwned(false);
+    setMGroupStatus("open");
+    setMGroupNotes("");
+    setMItemTitle("");
+    setMItemQty("1");
+    setMItemImageUrl("");
+    setMItemNotes("");
+  };
+
+  const startEditMerchantGroup = (g: MerchantPreorderGroup) => {
+    setEditingMerchantGroupId(g.id);
+    setMSeller(g.sellerName);
+    setMPlatform(g.platform ?? "");
+    setMPurchaseDate(toDateInputValue(g.purchaseDate));
+    setMSubtype(g.subtype);
+    setMAmountPaid(g.amountPaid != null ? String(g.amountPaid) : "");
+    setMDepositPaidAt(toDateInputValue(g.depositPaidAt));
+    setMDepositAmount(g.depositAmount != null ? String(g.depositAmount) : "");
+    setMFinalPaid(Boolean(g.finalPaid));
+    setMFinalPaidAt(toDateInputValue(g.finalPaidAt));
+    setMFinalAmount(g.finalAmount != null ? String(g.finalAmount) : "");
+    setMOwned(Boolean(g.owned));
+    setMGroupStatus(g.status);
+    setMGroupNotes(g.notes ?? "");
+  };
+
+  const saveMerchantGroup = async () => {
+    if (!editingMerchantGroupId) return;
+    if (mSeller.trim() === "") {
+      alert("Seller is required.");
+      return;
+    }
+
+    const res = await fetch(`/api/pending/merchant-groups/${editingMerchantGroupId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sellerName: mSeller,
+        platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
+        purchaseDate: fromDateInputValue(mPurchaseDate),
+        subtype: mSubtype,
+        amountPaid: mAmountPaid.trim() === "" ? null : Number(mAmountPaid),
+        depositPaidAt:
+          mDepositPaidAt.trim() === "" ? null : fromDateInputValue(mDepositPaidAt),
+        depositAmount:
+          mDepositAmount.trim() === "" ? null : Number(mDepositAmount),
+        finalPaid: mFinalPaid,
+        finalPaidAt:
+          mFinalPaidAt.trim() === "" ? null : fromDateInputValue(mFinalPaidAt),
+        finalAmount: mFinalAmount.trim() === "" ? null : Number(mFinalAmount),
+        owned: mOwned,
+        status: mGroupStatus,
+        notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error ?? "Failed to save merchant order.");
+      return;
+    }
+
+    cancelEditMerchantGroup();
+    await loadMerchant();
+  };
+
+  const updateMerchantGroupStatus = async (id: number, status: MerchantPreorderGroupStatus) => {
+    await fetch(`/api/pending/merchant-groups/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
     await loadMerchant();
   };
 
@@ -565,7 +655,9 @@ export default function PendingPage() {
         {activeTab === "MERCHANT" ? (
           <div className="mt-4">
             <div className="rounded border bg-white p-3 text-sm">
-              <div className="mb-2 text-sm font-semibold">Create merchant order</div>
+              <div className="mb-2 text-sm font-semibold">
+                {editingMerchantGroupId ? "Edit merchant order" : "Create merchant order"}
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">Seller</label>
@@ -719,64 +811,79 @@ export default function PendingPage() {
                   />
                 </div>
 
-                <div className="sm:col-span-2 border-t pt-3 text-xs font-semibold text-zinc-700">
-                  First line item
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Title</label>
-                  <input
-                    value={mItemTitle}
-                    onChange={(e) => setMItemTitle(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Item title"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={mItemQty}
-                    onChange={(e) => setMItemQty(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="block text-xs font-medium text-zinc-600">
-                    Image URL (optional)
-                  </label>
-                  <input
-                    value={mItemImageUrl}
-                    onChange={(e) => setMItemImageUrl(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="data:... or https://..."
-                  />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="block text-xs font-medium text-zinc-600">
-                    Line item notes (optional)
-                  </label>
-                  <input
-                    value={mItemNotes}
-                    onChange={(e) => setMItemNotes(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  />
-                </div>
+                {!editingMerchantGroupId ? (
+                  <>
+                    <div className="sm:col-span-2 border-t pt-3 text-xs font-semibold text-zinc-700">
+                      First line item
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Title</label>
+                      <input
+                        value={mItemTitle}
+                        onChange={(e) => setMItemTitle(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Item title"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={mItemQty}
+                        onChange={(e) => setMItemQty(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Image URL (optional)
+                      </label>
+                      <input
+                        value={mItemImageUrl}
+                        onChange={(e) => setMItemImageUrl(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="data:... or https://..."
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="block text-xs font-medium text-zinc-600">
+                        Line item notes (optional)
+                      </label>
+                      <input
+                        value={mItemNotes}
+                        onChange={(e) => setMItemNotes(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                  </>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={createMerchantGroup}
-                disabled={
-                  mSeller.trim() === "" ||
-                  mPurchaseDate.trim() === "" ||
-                  mItemTitle.trim() === ""
-                }
-                className="mt-3 rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-              >
-                Create
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={editingMerchantGroupId ? saveMerchantGroup : createMerchantGroup}
+                  disabled={
+                    mSeller.trim() === "" ||
+                    mPurchaseDate.trim() === "" ||
+                    (!editingMerchantGroupId && mItemTitle.trim() === "")
+                  }
+                  className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                >
+                  {editingMerchantGroupId ? "Save changes" : "Create"}
+                </button>
+                {editingMerchantGroupId ? (
+                  <button
+                    type="button"
+                    onClick={cancelEditMerchantGroup}
+                    className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {merchantLoading ? (
@@ -784,121 +891,138 @@ export default function PendingPage() {
             ) : merchant.length === 0 ? (
               <div className="mt-3 text-xs text-zinc-500">No merchant orders.</div>
             ) : (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 space-y-3">
                 {merchant.map((g) => {
                   const waitingDays = daysBetween(g.purchaseDate, now);
                   const expanded = expandedMerchantGroupId === g.id;
                   const openCount = g.items.filter((it) => !it.received).length;
+
                   return (
-                    <div
-                      key={g.id}
-                      className="flex flex-col overflow-hidden rounded-xl border bg-white text-sm shadow-sm"
-                    >
-                      <div className="flex items-center justify-between gap-2 border-b p-3">
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold">
+                    <div key={g.id} className="rounded border bg-white p-3 text-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-zinc-900">
                             {g.sellerName}
                             {g.platform ? ` · ${g.platform}` : ""}
                           </div>
-                          <div className="text-xs text-zinc-600">
-                            Purchase: {toDateInputValue(g.purchaseDate)} · waiting{" "}
-                            {waitingDays} days
+                          <div className="mt-0.5 text-xs text-zinc-600">
+                            {g.items.length} item{g.items.length === 1 ? "" : "s"} ·{" "}
+                            {g.subtype === "deposit_presale" ? "deposit presale" : "full payment"}
                           </div>
+                          <div className="mt-0.5 text-xs text-zinc-600">
+                            Purchase: {toDateInputValue(g.purchaseDate)} · waiting {waitingDays} days
+                          </div>
+                          <div className="mt-0.5 text-xs text-zinc-600">
+                            Open: {openCount}/{g.items.length}
+                            {g.subtype === "deposit_presale" ? (
+                              <>
+                                {" "}
+                                · Owned: {g.owned ? "Yes" : "No"} · Final paid:{" "}
+                                {g.finalPaid ? "Yes" : "No"}
+                              </>
+                            ) : g.amountPaid != null ? (
+                              <> · Total paid: {g.amountPaid.toLocaleString()}</>
+                            ) : null}
+                          </div>
+                          {g.notes ? (
+                            <div className="mt-1 text-xs text-zinc-600 line-clamp-2">
+                              {g.notes}
+                            </div>
+                          ) : null}
                         </div>
-                        <button
-                          type="button"
-                          className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
-                          onClick={() => {
-                            setExpandedMerchantGroupId((prev) =>
-                              prev === g.id ? null : g.id
-                            );
-                            setNewLineTitle("");
-                            setNewLineQty("1");
-                            setNewLineImageUrl("");
-                            setNewLineNotes("");
-                          }}
-                        >
-                          {expanded ? "Hide" : "View"} ({openCount}/{g.items.length})
-                        </button>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            className="rounded border px-2 py-1 text-xs"
+                            value={g.status}
+                            onChange={(e) =>
+                              updateMerchantGroupStatus(
+                                g.id,
+                                e.target.value as MerchantPreorderGroupStatus
+                              )
+                            }
+                          >
+                            <option value="open">open</option>
+                            <option value="received">received</option>
+                            <option value="cancelled">cancelled</option>
+                          </select>
+                          <button
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                            onClick={() => startEditMerchantGroup(g)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                            onClick={() => {
+                              setExpandedMerchantGroupId(expanded ? null : g.id);
+                              setNewLineTitle("");
+                              setNewLineQty("1");
+                              setNewLineImageUrl("");
+                              setNewLineNotes("");
+                            }}
+                          >
+                            {expanded ? "Hide" : "View"}
+                          </button>
+                          <button
+                            className="rounded border px-2 py-1 text-xs hover:bg-zinc-100"
+                            onClick={() => deleteMerchantGroup(g.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex flex-1 flex-col gap-2 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                            {g.subtype === "deposit_presale"
-                              ? "deposit presale"
-                              : "full payment"}
+                      {expanded ? (
+                        <div className="mt-3 border-t pt-3">
+                          <div className="mb-2 text-xs font-medium text-zinc-600">
+                            Line items
                           </div>
-                          <div className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-700">
-                            {g.status}
-                          </div>
-                        </div>
 
-                        {g.subtype === "deposit_presale" ? (
-                          <div className="text-xs text-zinc-700">
-                            Deposit: {g.depositAmount ?? "—"} · Final paid:{" "}
-                            {g.finalPaid ? "Yes" : "No"} · Owned:{" "}
-                            {g.owned ? "Yes" : "No"}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-zinc-700">
-                            Total paid: {g.amountPaid ?? "—"}
-                          </div>
-                        )}
-
-                        {g.notes ? (
-                          <div className="text-xs text-zinc-600 line-clamp-3">
-                            {g.notes}
-                          </div>
-                        ) : null}
-
-                        {expanded ? (
-                          <div className="mt-2 space-y-2">
-                            <div className="text-xs font-semibold text-zinc-700">
-                              Line items
-                            </div>
+                          {g.items.length === 0 ? (
+                            <div className="text-xs text-zinc-500">No line items yet.</div>
+                          ) : (
                             <div className="space-y-2">
                               {g.items.map((it) => (
                                 <div
                                   key={it.id}
-                                  className="flex items-start gap-2 rounded border p-2"
+                                  className="flex items-start justify-between gap-2 rounded border bg-white p-2 text-xs"
                                 >
-                                  <div className="h-12 w-12 flex-none overflow-hidden rounded bg-zinc-100">
-                                    {it.imageUrl ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img
-                                        src={it.imageUrl}
-                                        alt={it.title}
-                                        loading="lazy"
-                                        className="h-full w-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
-                                        —
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="truncate text-xs font-medium">
-                                      {it.title}{" "}
-                                      <span className="text-zinc-500">
-                                        ×{it.quantity}
-                                      </span>
+                                  <div className="flex items-start gap-2">
+                                    <div className="h-10 w-10 overflow-hidden rounded border bg-zinc-100">
+                                      {it.imageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={it.imageUrl}
+                                          alt={it.title}
+                                          loading="lazy"
+                                          className="h-full w-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                                          —
+                                        </div>
+                                      )}
                                     </div>
-                                    {it.notes ? (
-                                      <div className="text-[11px] text-zinc-600 line-clamp-2">
-                                        {it.notes}
+                                    <div>
+                                      <div className="font-medium text-zinc-900">
+                                        {it.title}{" "}
+                                        <span className="text-zinc-500">×{it.quantity}</span>
                                       </div>
-                                    ) : null}
+                                      {it.notes ? (
+                                        <div className="text-zinc-600 line-clamp-2">{it.notes}</div>
+                                      ) : null}
+                                    </div>
                                   </div>
-                                  <div className="flex flex-col gap-1">
-                                    <div className="rounded bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-700">
+
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
                                       {it.received ? "received" : "waiting"}
-                                    </div>
+                                    </span>
                                     {!it.received ? (
                                       <button
                                         type="button"
-                                        className="rounded border px-2 py-0.5 text-[10px] hover:bg-zinc-100"
+                                        className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
                                         onClick={() => markMerchantLineReceived(it.id)}
                                       >
                                         Mark received → Collection
@@ -908,61 +1032,53 @@ export default function PendingPage() {
                                 </div>
                               ))}
                             </div>
+                          )}
 
-                            <div className="rounded border bg-white p-2">
-                              <div className="mb-1 text-xs font-semibold text-zinc-700">
-                                Add line item
-                              </div>
-                              <div className="grid grid-cols-1 gap-2">
-                                <input
-                                  value={newLineTitle}
-                                  onChange={(e) => setNewLineTitle(e.target.value)}
-                                  className="w-full rounded border px-2 py-1 text-xs"
-                                  placeholder="Title"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    value={newLineQty}
-                                    onChange={(e) => setNewLineQty(e.target.value)}
-                                    className="w-full rounded border px-2 py-1 text-xs"
-                                    placeholder="Qty"
-                                  />
-                                  <input
-                                    value={newLineImageUrl}
-                                    onChange={(e) => setNewLineImageUrl(e.target.value)}
-                                    className="w-full rounded border px-2 py-1 text-xs"
-                                    placeholder="Image URL (optional)"
-                                  />
-                                </div>
-                                <input
-                                  value={newLineNotes}
-                                  onChange={(e) => setNewLineNotes(e.target.value)}
-                                  className="w-full rounded border px-2 py-1 text-xs"
-                                  placeholder="Notes (optional)"
-                                />
-                                <button
-                                  type="button"
-                                  className="rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
-                                  onClick={addLineItemToExpandedGroup}
-                                >
-                                  Add
-                                </button>
-                              </div>
+                          <div className="mt-3 rounded border bg-zinc-50 p-2">
+                            <div className="mb-2 text-xs font-medium text-zinc-600">
+                              Add line item
                             </div>
-
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              <button
-                                className="rounded border px-2 py-0.5 text-xs hover:bg-zinc-100"
-                                onClick={() => deleteMerchantGroup(g.id)}
-                              >
-                                Delete group
-                              </button>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <input
+                                value={newLineTitle}
+                                onChange={(e) => setNewLineTitle(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Title"
+                              />
+                              <input
+                                type="number"
+                                min={1}
+                                value={newLineQty}
+                                onChange={(e) => setNewLineQty(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Qty"
+                              />
                             </div>
+                            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <input
+                                value={newLineImageUrl}
+                                onChange={(e) => setNewLineImageUrl(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Image URL (optional)"
+                              />
+                              <input
+                                value={newLineNotes}
+                                onChange={(e) => setNewLineNotes(e.target.value)}
+                                className="w-full rounded border px-2 py-1 text-sm"
+                                placeholder="Notes (optional)"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className="mt-2 rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                              disabled={newLineTitle.trim() === ""}
+                              onClick={addLineItemToExpandedGroup}
+                            >
+                              Add
+                            </button>
                           </div>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
