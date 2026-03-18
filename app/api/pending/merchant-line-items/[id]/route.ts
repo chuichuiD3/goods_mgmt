@@ -35,7 +35,6 @@ export async function PUT(
       body.amountPaidTotal === null || body.amountPaidTotal === ""
         ? null
         : Number(body.amountPaidTotal);
-  if (body.currency !== undefined) data.currency = body.currency ?? "JPY";
   if (body.depositPaidAt !== undefined)
     data.depositPaidAt = body.depositPaidAt ? new Date(body.depositPaidAt) : null;
   if (body.depositAmount !== undefined)

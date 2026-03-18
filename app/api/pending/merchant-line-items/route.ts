@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
         body.amountPaidTotal === undefined || body.amountPaidTotal === null
           ? null
           : Number(body.amountPaidTotal),
-      currency: body.currency ?? "JPY",
       depositPaidAt: body.depositPaidAt ? new Date(body.depositPaidAt) : null,
       depositAmount:
         body.depositAmount === undefined || body.depositAmount === null

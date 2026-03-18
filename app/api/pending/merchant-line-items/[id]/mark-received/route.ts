@@ -58,7 +58,7 @@ export async function POST(
           price: unitPrice,
           quantity: qty,
           totalAmount: total,
-          currency: line.currency ?? "JPY",
+          currency: "JPY",
           status: "OWNED",
           orderDate: line.group.purchaseDate,
           sourceType: "MERCHANT_PREORDER",

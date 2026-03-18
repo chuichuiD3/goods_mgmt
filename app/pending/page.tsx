@@ -17,7 +17,6 @@ type MerchantPreorderLineItem = {
   notes: string | null;
   subtype: MerchantPreorderSubtype;
   amountPaidTotal: number | null;
-  currency: string;
   depositPaidAt: string | null;
   depositAmount: number | null;
   finalPaid: boolean;
@@ -138,7 +137,6 @@ export default function PendingPage() {
     "full_payment_presale"
   );
   const [mItemAmountPaidTotal, setMItemAmountPaidTotal] = useState<string>("");
-  const [mItemCurrency, setMItemCurrency] = useState<string>("JPY");
   const [mItemDepositPaidAt, setMItemDepositPaidAt] = useState<string>("");
   const [mItemDepositAmount, setMItemDepositAmount] = useState<string>("");
   const [mItemFinalPaid, setMItemFinalPaid] = useState<boolean>(false);
@@ -157,7 +155,6 @@ export default function PendingPage() {
     "full_payment_presale"
   );
   const [newLineAmountPaidTotal, setNewLineAmountPaidTotal] = useState<string>("");
-  const [newLineCurrency, setNewLineCurrency] = useState<string>("JPY");
   const [newLineDepositPaidAt, setNewLineDepositPaidAt] = useState<string>("");
   const [newLineDepositAmount, setNewLineDepositAmount] = useState<string>("");
   const [newLineFinalPaid, setNewLineFinalPaid] = useState<boolean>(false);
@@ -179,7 +176,6 @@ export default function PendingPage() {
     "full_payment_presale"
   );
   const [eLineAmountPaidTotal, setELineAmountPaidTotal] = useState<string>("");
-  const [eLineCurrency, setELineCurrency] = useState<string>("JPY");
   const [eLineDepositPaidAt, setELineDepositPaidAt] = useState<string>("");
   const [eLineDepositAmount, setELineDepositAmount] = useState<string>("");
   const [eLineFinalPaid, setELineFinalPaid] = useState<boolean>(false);
@@ -304,7 +300,6 @@ export default function PendingPage() {
           mItemAmountPaidTotal.trim() === ""
             ? null
             : Number(mItemAmountPaidTotal),
-        currency: mItemCurrency.trim() === "" ? "JPY" : mItemCurrency.trim(),
         depositPaidAt:
           mItemDepositPaidAt.trim() === ""
             ? null
@@ -347,7 +342,6 @@ export default function PendingPage() {
     setMItemNotes("");
     setMItemSubtype("full_payment_presale");
     setMItemAmountPaidTotal("");
-    setMItemCurrency("JPY");
     setMItemDepositPaidAt("");
     setMItemDepositAmount("");
     setMItemFinalPaid(false);
@@ -373,7 +367,6 @@ export default function PendingPage() {
     setMItemNotes("");
     setMItemSubtype("full_payment_presale");
     setMItemAmountPaidTotal("");
-    setMItemCurrency("JPY");
     setMItemDepositPaidAt("");
     setMItemDepositAmount("");
     setMItemFinalPaid(false);
@@ -471,7 +464,6 @@ export default function PendingPage() {
           newLineAmountPaidTotal.trim() === ""
             ? null
             : Number(newLineAmountPaidTotal),
-        currency: newLineCurrency.trim() === "" ? "JPY" : newLineCurrency.trim(),
         depositPaidAt:
           newLineDepositPaidAt.trim() === ""
             ? null
@@ -508,7 +500,6 @@ export default function PendingPage() {
     setNewLineNotes("");
     setNewLineSubtype("full_payment_presale");
     setNewLineAmountPaidTotal("");
-    setNewLineCurrency("JPY");
     setNewLineDepositPaidAt("");
     setNewLineDepositAmount("");
     setNewLineFinalPaid(false);
@@ -528,7 +519,6 @@ export default function PendingPage() {
     setELineNotes(it.notes ?? "");
     setELineSubtype(it.subtype);
     setELineAmountPaidTotal(it.amountPaidTotal != null ? String(it.amountPaidTotal) : "");
-    setELineCurrency(it.currency ?? "JPY");
     setELineDepositPaidAt(toDateInputValue(it.depositPaidAt));
     setELineDepositAmount(it.depositAmount != null ? String(it.depositAmount) : "");
     setELineFinalPaid(Boolean(it.finalPaid));
@@ -547,7 +537,6 @@ export default function PendingPage() {
     setELineNotes("");
     setELineSubtype("full_payment_presale");
     setELineAmountPaidTotal("");
-    setELineCurrency("JPY");
     setELineDepositPaidAt("");
     setELineDepositAmount("");
     setELineFinalPaid(false);
@@ -570,7 +559,6 @@ export default function PendingPage() {
         subtype: eLineSubtype,
         amountPaidTotal:
           eLineAmountPaidTotal.trim() === "" ? null : Number(eLineAmountPaidTotal),
-        currency: eLineCurrency.trim() === "" ? "JPY" : eLineCurrency.trim(),
         depositPaidAt:
           eLineDepositPaidAt.trim() === "" ? null : fromDateInputValue(eLineDepositPaidAt),
         depositAmount:
@@ -915,15 +903,6 @@ export default function PendingPage() {
                         <option value="deposit_presale">Deposit presale</option>
                       </select>
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Currency</label>
-                      <input
-                        value={mItemCurrency}
-                        onChange={(e) => setMItemCurrency(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="JPY"
-                      />
-                    </div>
                     {mItemSubtype === "full_payment_presale" ? (
                       <div className="space-y-1 sm:col-span-2">
                         <label className="block text-xs font-medium text-zinc-600">
@@ -1146,7 +1125,6 @@ export default function PendingPage() {
                               setNewLineNotes("");
                               setNewLineSubtype("full_payment_presale");
                               setNewLineAmountPaidTotal("");
-                              setNewLineCurrency("JPY");
                               setNewLineDepositPaidAt("");
                               setNewLineDepositAmount("");
                               setNewLineFinalPaid(false);
@@ -1233,12 +1211,9 @@ export default function PendingPage() {
                                               </option>
                                               <option value="deposit_presale">Deposit presale</option>
                                             </select>
-                                            <input
-                                              value={eLineCurrency}
-                                              onChange={(e) => setELineCurrency(e.target.value)}
-                                              className="w-full rounded border px-2 py-1 text-sm"
-                                              placeholder="Currency (JPY)"
-                                            />
+                                            <div className="text-xs text-zinc-600 sm:pt-2">
+                                              Currency: JPY
+                                            </div>
                                           </div>
 
                                           {eLineSubtype === "full_payment_presale" ? (
@@ -1438,12 +1413,9 @@ export default function PendingPage() {
                                 <option value="full_payment_presale">Full payment presale</option>
                                 <option value="deposit_presale">Deposit presale</option>
                               </select>
-                              <input
-                                value={newLineCurrency}
-                                onChange={(e) => setNewLineCurrency(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Currency (JPY)"
-                              />
+                              <div className="text-xs text-zinc-600 sm:pt-2">
+                                Currency: JPY
+                              </div>
                             </div>
                             {newLineSubtype === "full_payment_presale" ? (
                               <div className="mt-2">

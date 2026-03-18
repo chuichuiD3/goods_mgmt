@@ -49,7 +49,6 @@ async function main() {
         notes: null,
         subtype: row.subtype,
         amountPaidTotal: row.amountPaid,
-        currency: "JPY",
         depositPaidAt: row.depositPaidAt,
         depositAmount: row.depositAmount,
         finalPaid: row.finalPaid,

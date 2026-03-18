@@ -172,7 +172,6 @@ model MerchantPreorderLineItem {
   // Transaction details are item-level
   subtype      MerchantPreorderSubtype @default(full_payment_presale)
   amountPaidTotal Float?
-  currency     String               @default("JPY")
 
   // Deposit-presale factual fields
   depositPaidAt DateTime?
