@@ -31,7 +31,6 @@ type MerchantPreorderGroup = {
   id: number;
   sellerName: string;
   platform: string | null;
-  purchaseDate: string;
   status: MerchantPreorderGroupStatus;
   notes: string | null;
   items: MerchantPreorderLineItem[];
@@ -60,13 +59,6 @@ type HoldingOrderGroup = {
   note: string | null;
   items: HoldingOrderItem[];
 };
-
-function daysBetween(fromIso: string, to: Date): number {
-  const from = new Date(fromIso);
-  if (Number.isNaN(from.getTime())) return 0;
-  const diffMs = to.getTime() - from.getTime();
-  return Math.max(0, Math.floor(diffMs / (24 * 60 * 60 * 1000)));
-}
 
 function countdown(deadlineIso: string | null, now: Date): string {
   if (!deadlineIso) return "—";
@@ -120,9 +112,6 @@ export default function PendingPage() {
   // Merchant group (shared) form
   const [mSeller, setMSeller] = useState("");
   const [mPlatform, setMPlatform] = useState("");
-  const [mPurchaseDate, setMPurchaseDate] = useState<string>(() =>
-    toDateInputValue(new Date().toISOString())
-  );
   const [mGroupStatus, setMGroupStatus] =
     useState<MerchantPreorderGroupStatus>("open");
   const [mGroupNotes, setMGroupNotes] = useState<string>("");
@@ -268,7 +257,6 @@ export default function PendingPage() {
       body: JSON.stringify({
         sellerName: mSeller,
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
-        purchaseDate: fromDateInputValue(mPurchaseDate),
         status: mGroupStatus,
         notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
       }),
@@ -349,7 +337,6 @@ export default function PendingPage() {
     setEditingMerchantGroupId(null);
     setMSeller("");
     setMPlatform("");
-    setMPurchaseDate(toDateInputValue(new Date().toISOString()));
     setMGroupStatus("open");
     setMGroupNotes("");
     setMItemTitle("");
@@ -371,7 +358,6 @@ export default function PendingPage() {
     setEditingMerchantGroupId(g.id);
     setMSeller(g.sellerName);
     setMPlatform(g.platform ?? "");
-    setMPurchaseDate(toDateInputValue(g.purchaseDate));
     setMGroupStatus(g.status);
     setMGroupNotes(g.notes ?? "");
   };
@@ -389,7 +375,6 @@ export default function PendingPage() {
       body: JSON.stringify({
         sellerName: mSeller,
         platform: mPlatform.trim() === "" ? null : mPlatform.trim(),
-        purchaseDate: fromDateInputValue(mPurchaseDate),
         status: mGroupStatus,
         notes: mGroupNotes.trim() === "" ? null : mGroupNotes.trim(),
       }),
@@ -812,14 +797,6 @@ export default function PendingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <input
-                    type="date"
-                    value={mPurchaseDate}
-                    onChange={(e) => setMPurchaseDate(e.target.value)}
-                    className="w-full rounded border px-2 py-1 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
                   <label className="block text-xs font-medium text-zinc-600">
                     Group status
                   </label>
@@ -1011,7 +988,6 @@ export default function PendingPage() {
                   onClick={editingMerchantGroupId ? saveMerchantGroup : createMerchantGroup}
                   disabled={
                     mSeller.trim() === "" ||
-                    mPurchaseDate.trim() === "" ||
                     (!editingMerchantGroupId && mItemTitle.trim() === "")
                   }
                   className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
@@ -1037,7 +1013,6 @@ export default function PendingPage() {
             ) : (
               <div className="mt-4 space-y-3">
                 {merchant.map((g) => {
-                  const waitingDays = daysBetween(g.purchaseDate, now);
                   const expanded = expandedMerchantGroupId === g.id;
                   const openCount = g.items.filter((it) => !it.received).length;
 
@@ -1051,9 +1026,6 @@ export default function PendingPage() {
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
                             {g.items.length} item{g.items.length === 1 ? "" : "s"}
-                          </div>
-                          <div className="mt-0.5 text-xs text-zinc-600">
-                            Purchase: {toDateInputValue(g.purchaseDate)} · waiting {waitingDays} days
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
                             Open: {openCount}/{g.items.length}

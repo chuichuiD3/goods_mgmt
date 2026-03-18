@@ -60,7 +60,7 @@ export async function POST(
           totalAmount: total,
           currency: "JPY",
           status: "OWNED",
-          orderDate: line.group.purchaseDate,
+          orderDate: null,
           sourceType: "MERCHANT_PREORDER",
           sourceOrderId: `merchantLine:${line.id}`,
           imageUrl: line.imageUrl,

@@ -33,7 +33,6 @@ async function main() {
       data: {
         sellerName: row.sellerName,
         platform: row.platform,
-        purchaseDate: row.purchaseDate,
         status: row.status === "received" ? "received" : "open",
         notes: [row.note, marker].filter(Boolean).join("\n\n") || marker,
       },

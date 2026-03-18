@@ -20,9 +20,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  if (!body.sellerName || !body.purchaseDate) {
+  if (!body.sellerName) {
     return NextResponse.json(
-      { error: "sellerName and purchaseDate are required" },
+      { error: "sellerName is required" },
       { status: 400 }
     );
   }
@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
     data: {
       sellerName: body.sellerName,
       platform: body.platform ?? null,
-      purchaseDate: new Date(body.purchaseDate),
       status,
       notes: body.notes ?? null,
     },

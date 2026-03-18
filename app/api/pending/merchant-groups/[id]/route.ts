@@ -25,8 +25,6 @@ export async function PUT(
 
   if (body.sellerName !== undefined) data.sellerName = body.sellerName;
   if (body.platform !== undefined) data.platform = body.platform;
-  if (body.purchaseDate !== undefined)
-    data.purchaseDate = new Date(body.purchaseDate);
   if (body.status !== undefined && isGroupStatus(body.status))
     data.status = body.status;
   if (body.notes !== undefined) data.notes = body.notes;

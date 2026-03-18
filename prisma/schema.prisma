@@ -142,7 +142,7 @@ model MerchantPreorderGroup {
   id            Int                     @id @default(autoincrement())
   sellerName    String
   platform      String?
-  purchaseDate  DateTime
+
   // TEMP (legacy): will be migrated to line items, then removed
   subtype       MerchantPreorderSubtype @default(full_payment_presale)
   amountPaid    Float?
