@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  CollectionAddItemForm,
+  type CollectionAddItemSubmitPayload,
+} from "@/components/CollectionAddItemForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
 
 type Item = {
@@ -36,11 +40,24 @@ export default function CollectionPage() {
     })();
   }, []);
 
-  const handleCreate = async (values: ItemFormValues) => {
+  const handleCreateCollectionItem = async (
+    payload: CollectionAddItemSubmitPayload
+  ) => {
+    const quantity = 1;
     await fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        itemName: payload.itemName,
+        platform: payload.platform,
+        price: payload.price,
+        quantity,
+        totalAmount: payload.price * quantity,
+        status: payload.status,
+        orderDate: payload.orderDate ?? undefined,
+        notes: payload.notes,
+        imageUrl: payload.imageDataUrl,
+      }),
     });
     setEditingItem(null);
     await loadItems();
@@ -99,27 +116,23 @@ export default function CollectionPage() {
             <h2 className="mb-2 text-sm font-semibold">
               {editingItem.id ? "Edit item" : "New item"}
             </h2>
-            <ItemForm
-              initialValues={
-                editingItem.id
-                  ? {
-                      itemName: editingItem.itemName,
-                      series: editingItem.series ?? "",
-                      character: editingItem.character ?? "",
-                      category: editingItem.category ?? "",
-                      platform: editingItem.platform ?? "",
-                      price: editingItem.price,
-                      quantity: editingItem.quantity,
-                      status: editingItem.status,
-                    }
-                  : undefined
-              }
-              onSubmit={(values) =>
-                editingItem.id
-                  ? handleUpdate(editingItem.id, values)
-                  : handleCreate(values)
-              }
-            />
+            {editingItem.id ? (
+              <ItemForm
+                initialValues={{
+                  itemName: editingItem.itemName,
+                  series: editingItem.series ?? "",
+                  character: editingItem.character ?? "",
+                  category: editingItem.category ?? "",
+                  platform: editingItem.platform ?? "",
+                  price: editingItem.price,
+                  quantity: editingItem.quantity,
+                  status: editingItem.status,
+                }}
+                onSubmit={(values) => handleUpdate(editingItem.id!, values)}
+              />
+            ) : (
+              <CollectionAddItemForm onSubmit={handleCreateCollectionItem} />
+            )}
           </div>
         )}
 
