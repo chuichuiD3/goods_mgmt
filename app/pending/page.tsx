@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 
 type MerchantPreorderSubtype = "full_payment_presale" | "deposit_presale";
 type MerchantPreorderGroupStatus = "open" | "received" | "cancelled";
@@ -116,27 +116,11 @@ export default function PendingPage() {
     useState<MerchantPreorderGroupStatus>("open");
   const [mGroupNotes, setMGroupNotes] = useState<string>("");
 
-  // First line item form (transaction details per item)
-  const [mItemTitle, setMItemTitle] = useState("");
-  const [mItemQty, setMItemQty] = useState<string>("1");
-  const [mItemImageUrl, setMItemImageUrl] = useState<string>("");
-  const [mItemNotes, setMItemNotes] = useState<string>("");
-  const [mItemSubtype, setMItemSubtype] = useState<MerchantPreorderSubtype>(
-    "full_payment_presale"
-  );
-  const [mItemAmountPaidTotal, setMItemAmountPaidTotal] = useState<string>("");
-  const [mItemDepositPaidAt, setMItemDepositPaidAt] = useState<string>("");
-  const [mItemDepositAmount, setMItemDepositAmount] = useState<string>("");
-  const [mItemFinalPaid, setMItemFinalPaid] = useState<boolean>(false);
-  const [mItemFinalPaidAt, setMItemFinalPaidAt] = useState<string>("");
-  const [mItemFinalAmount, setMItemFinalAmount] = useState<string>("");
-  const [mItemOwned, setMItemOwned] = useState<boolean>(false);
-  const [mItemExpectedReleaseWindow, setMItemExpectedReleaseWindow] = useState<string>("");
-
   // Merchant add line to expanded group
   const [newLineTitle, setNewLineTitle] = useState("");
-  const [newLineQty, setNewLineQty] = useState<string>("1");
-  const [newLineImageUrl, setNewLineImageUrl] = useState<string>("");
+  const [newLineImageDataUrl, setNewLineImageDataUrl] = useState<string | null>(
+    null
+  );
   const [newLineNotes, setNewLineNotes] = useState<string>("");
   const [newLineSubtype, setNewLineSubtype] = useState<MerchantPreorderSubtype>(
     "full_payment_presale"
@@ -155,8 +139,9 @@ export default function PendingPage() {
     null
   );
   const [eLineTitle, setELineTitle] = useState("");
-  const [eLineQty, setELineQty] = useState<string>("1");
-  const [eLineImageUrl, setELineImageUrl] = useState<string>("");
+  const [eLineImageDataUrl, setELineImageDataUrl] = useState<string | null>(
+    null
+  );
   const [eLineNotes, setELineNotes] = useState<string>("");
   const [eLineSubtype, setELineSubtype] = useState<MerchantPreorderSubtype>(
     "full_payment_presale"
@@ -246,8 +231,8 @@ export default function PendingPage() {
   }, [holding]);
 
   const createMerchantGroup = async () => {
-    if (mSeller.trim() === "" || mItemTitle.trim() === "") {
-      alert("Seller and item title are required.");
+    if (mSeller.trim() === "") {
+      alert("Seller is required.");
       return;
     }
 
@@ -270,66 +255,11 @@ export default function PendingPage() {
 
     const createdGroup = (await groupRes.json()) as MerchantPreorderGroup;
 
-    const itemRes = await fetch("/api/pending/merchant-line-items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        groupId: createdGroup.id,
-        title: mItemTitle,
-        imageUrl: mItemImageUrl.trim() === "" ? null : mItemImageUrl.trim(),
-        quantity: mItemQty.trim() === "" ? 1 : Number(mItemQty),
-        notes: mItemNotes.trim() === "" ? null : mItemNotes.trim(),
-        subtype: mItemSubtype,
-        amountPaidTotal:
-          mItemAmountPaidTotal.trim() === ""
-            ? null
-            : Number(mItemAmountPaidTotal),
-        depositPaidAt:
-          mItemDepositPaidAt.trim() === ""
-            ? null
-            : fromDateInputValue(mItemDepositPaidAt),
-        depositAmount:
-          mItemDepositAmount.trim() === "" ? null : Number(mItemDepositAmount),
-        finalPaid: mItemFinalPaid,
-        finalPaidAt:
-          mItemFinalPaidAt.trim() === ""
-            ? null
-            : fromDateInputValue(mItemFinalPaidAt),
-        finalAmount:
-          mItemFinalAmount.trim() === "" ? null : Number(mItemFinalAmount),
-        owned: mItemOwned,
-        expectedReleaseWindow:
-          mItemExpectedReleaseWindow.trim() === ""
-            ? null
-            : mItemExpectedReleaseWindow.trim(),
-      }),
-    });
-
-    if (!itemRes.ok) {
-      alert(
-        "Order created, but failed to create the first line item. Please add it manually."
-      );
-    }
-
     setMSeller("");
     setMPlatform("");
     setMGroupStatus("open");
     setMGroupNotes("");
-
-    setMItemTitle("");
-    setMItemQty("1");
-    setMItemImageUrl("");
-    setMItemNotes("");
-    setMItemSubtype("full_payment_presale");
-    setMItemAmountPaidTotal("");
-    setMItemDepositPaidAt("");
-    setMItemDepositAmount("");
-    setMItemFinalPaid(false);
-    setMItemFinalPaidAt("");
-    setMItemFinalAmount("");
-    setMItemOwned(false);
-    setMItemExpectedReleaseWindow("");
-
+    setExpandedMerchantGroupId(createdGroup.id);
     await loadMerchant();
   };
 
@@ -339,19 +269,6 @@ export default function PendingPage() {
     setMPlatform("");
     setMGroupStatus("open");
     setMGroupNotes("");
-    setMItemTitle("");
-    setMItemQty("1");
-    setMItemImageUrl("");
-    setMItemNotes("");
-    setMItemSubtype("full_payment_presale");
-    setMItemAmountPaidTotal("");
-    setMItemDepositPaidAt("");
-    setMItemDepositAmount("");
-    setMItemFinalPaid(false);
-    setMItemFinalPaidAt("");
-    setMItemFinalAmount("");
-    setMItemOwned(false);
-    setMItemExpectedReleaseWindow("");
   };
 
   const startEditMerchantGroup = (g: MerchantPreorderGroup) => {
@@ -431,8 +348,7 @@ export default function PendingPage() {
       body: JSON.stringify({
         groupId: expandedMerchantGroupId,
         title: newLineTitle,
-        imageUrl: newLineImageUrl.trim() === "" ? null : newLineImageUrl.trim(),
-        quantity: newLineQty.trim() === "" ? 1 : Number(newLineQty),
+        imageUrl: newLineImageDataUrl,
         notes: newLineNotes.trim() === "" ? null : newLineNotes.trim(),
         subtype: newLineSubtype,
         amountPaidTotal:
@@ -467,8 +383,7 @@ export default function PendingPage() {
     }
 
     setNewLineTitle("");
-    setNewLineQty("1");
-    setNewLineImageUrl("");
+    setNewLineImageDataUrl(null);
     setNewLineNotes("");
     setNewLineSubtype("full_payment_presale");
     setNewLineAmountPaidTotal("");
@@ -482,11 +397,40 @@ export default function PendingPage() {
     await loadMerchant();
   };
 
+  const handleNewLineImageFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setNewLineImageDataUrl(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setNewLineImageDataUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleELineImageFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setELineImageDataUrl(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setELineImageDataUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const startEditMerchantLine = (it: MerchantPreorderLineItem) => {
     setEditingMerchantLineId(it.id);
     setELineTitle(it.title);
-    setELineQty(String(it.quantity ?? 1));
-    setELineImageUrl(it.imageUrl ?? "");
+    setELineImageDataUrl(it.imageUrl ?? null);
     setELineNotes(it.notes ?? "");
     setELineSubtype(it.subtype);
     setELineAmountPaidTotal(it.amountPaidTotal != null ? String(it.amountPaidTotal) : "");
@@ -502,8 +446,7 @@ export default function PendingPage() {
   const cancelEditMerchantLine = () => {
     setEditingMerchantLineId(null);
     setELineTitle("");
-    setELineQty("1");
-    setELineImageUrl("");
+    setELineImageDataUrl(null);
     setELineNotes("");
     setELineSubtype("full_payment_presale");
     setELineAmountPaidTotal("");
@@ -522,8 +465,7 @@ export default function PendingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: eLineTitle,
-        imageUrl: eLineImageUrl.trim() === "" ? null : eLineImageUrl.trim(),
-        quantity: eLineQty.trim() === "" ? 1 : Number(eLineQty),
+        imageUrl: eLineImageDataUrl,
         notes: eLineNotes.trim() === "" ? null : eLineNotes.trim(),
         subtype: eLineSubtype,
         amountPaidTotal:
@@ -822,174 +764,17 @@ export default function PendingPage() {
                     className="w-full rounded border px-2 py-1 text-sm"
                   />
                 </div>
-
-                {!editingMerchantGroupId ? (
-                  <>
-                    <div className="sm:col-span-2 border-t pt-3 text-xs font-semibold text-zinc-700">
-                      First line item
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Title</label>
-                      <input
-                        value={mItemTitle}
-                        onChange={(e) => setMItemTitle(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="Item title"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Quantity
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={mItemQty}
-                        onChange={(e) => setMItemQty(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">Subtype</label>
-                      <select
-                        value={mItemSubtype}
-                        onChange={(e) =>
-                          setMItemSubtype(e.target.value as MerchantPreorderSubtype)
-                        }
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      >
-                        <option value="full_payment_presale">Full payment presale</option>
-                        <option value="deposit_presale">Deposit presale</option>
-                      </select>
-                    </div>
-                    {mItemSubtype === "full_payment_presale" ? (
-                      <div className="space-y-1 sm:col-span-2">
-                        <label className="block text-xs font-medium text-zinc-600">
-                          Amount paid total (optional)
-                        </label>
-                        <input
-                          type="number"
-                          value={mItemAmountPaidTotal}
-                          onChange={(e) => setMItemAmountPaidTotal(e.target.value)}
-                          className="w-full rounded border px-2 py-1 text-sm"
-                          placeholder="Optional"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-zinc-600">
-                            Deposit paid at
-                          </label>
-                          <input
-                            type="date"
-                            value={mItemDepositPaidAt}
-                            onChange={(e) => setMItemDepositPaidAt(e.target.value)}
-                            className="w-full rounded border px-2 py-1 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-zinc-600">
-                            Deposit amount
-                          </label>
-                          <input
-                            type="number"
-                            value={mItemDepositAmount}
-                            onChange={(e) => setMItemDepositAmount(e.target.value)}
-                            className="w-full rounded border px-2 py-1 text-sm"
-                            placeholder="Optional"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
-                            <input
-                              type="checkbox"
-                              checked={mItemFinalPaid}
-                              onChange={(e) => setMItemFinalPaid(e.target.checked)}
-                            />
-                            Final payment made
-                          </label>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-zinc-600">
-                            Final paid at
-                          </label>
-                          <input
-                            type="date"
-                            value={mItemFinalPaidAt}
-                            onChange={(e) => setMItemFinalPaidAt(e.target.value)}
-                            className="w-full rounded border px-2 py-1 text-sm"
-                            disabled={!mItemFinalPaid}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-zinc-600">
-                            Final amount
-                          </label>
-                          <input
-                            type="number"
-                            value={mItemFinalAmount}
-                            onChange={(e) => setMItemFinalAmount(e.target.value)}
-                            className="w-full rounded border px-2 py-1 text-sm"
-                            placeholder="Optional"
-                            disabled={!mItemFinalPaid}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600">
-                            <input
-                              type="checkbox"
-                              checked={mItemOwned}
-                              onChange={(e) => setMItemOwned(e.target.checked)}
-                            />
-                            Owned
-                          </label>
-                        </div>
-                      </>
-                    )}
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Expected release window (optional)
-                      </label>
-                      <input
-                        value={mItemExpectedReleaseWindow}
-                        onChange={(e) => setMItemExpectedReleaseWindow(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="e.g. 2026-07, 2026-07 to 2026-08, July–August 2026"
-                      />
-                    </div>
-                    <div className="space-y-1 sm:col-span-2">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Image URL (optional)
-                      </label>
-                      <input
-                        value={mItemImageUrl}
-                        onChange={(e) => setMItemImageUrl(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                        placeholder="data:... or https://..."
-                      />
-                    </div>
-                    <div className="space-y-1 sm:col-span-2">
-                      <label className="block text-xs font-medium text-zinc-600">
-                        Line item notes (optional)
-                      </label>
-                      <input
-                        value={mItemNotes}
-                        onChange={(e) => setMItemNotes(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    </div>
-                  </>
-                ) : null}
               </div>
+              {!editingMerchantGroupId ? (
+                <p className="mt-2 text-xs text-zinc-500">
+                  Create the order first, then expand it below to add line items.
+                </p>
+              ) : null}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={editingMerchantGroupId ? saveMerchantGroup : createMerchantGroup}
-                  disabled={
-                    mSeller.trim() === "" ||
-                    (!editingMerchantGroupId && mItemTitle.trim() === "")
-                  }
+                  disabled={mSeller.trim() === ""}
                   className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
                 >
                   {editingMerchantGroupId ? "Save changes" : "Create"}
@@ -1063,8 +848,7 @@ export default function PendingPage() {
                             onClick={() => {
                               setExpandedMerchantGroupId(expanded ? null : g.id);
                               setNewLineTitle("");
-                              setNewLineQty("1");
-                              setNewLineImageUrl("");
+                              setNewLineImageDataUrl(null);
                               setNewLineNotes("");
                               setNewLineSubtype("full_payment_presale");
                               setNewLineAmountPaidTotal("");
@@ -1122,22 +906,12 @@ export default function PendingPage() {
                                     <div>
                                       {editingMerchantLineId === it.id ? (
                                         <div className="space-y-2">
-                                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                            <input
-                                              value={eLineTitle}
-                                              onChange={(e) => setELineTitle(e.target.value)}
-                                              className="w-full rounded border px-2 py-1 text-sm"
-                                              placeholder="Title"
-                                            />
-                                            <input
-                                              type="number"
-                                              min={1}
-                                              value={eLineQty}
-                                              onChange={(e) => setELineQty(e.target.value)}
-                                              className="w-full rounded border px-2 py-1 text-sm"
-                                              placeholder="Qty"
-                                            />
-                                          </div>
+                                          <input
+                                            value={eLineTitle}
+                                            onChange={(e) => setELineTitle(e.target.value)}
+                                            className="w-full rounded border px-2 py-1 text-sm"
+                                            placeholder="Title"
+                                          />
                                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                             <select
                                               value={eLineSubtype}
@@ -1232,12 +1006,37 @@ export default function PendingPage() {
                                             />
                                           </div>
 
-                                          <input
-                                            value={eLineImageUrl}
-                                            onChange={(e) => setELineImageUrl(e.target.value)}
-                                            className="w-full rounded border px-2 py-1 text-sm"
-                                            placeholder="Image URL (optional)"
-                                          />
+                                          <div className="space-y-1">
+                                            <label className="block text-xs font-medium text-zinc-600">
+                                              Image (optional)
+                                            </label>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              onChange={handleELineImageFile}
+                                              className="text-xs"
+                                            />
+                                            {eLineImageDataUrl ? (
+                                              <div>
+                                                <div className="text-[11px] font-medium text-zinc-500">
+                                                  Preview
+                                                </div>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                  src={eLineImageDataUrl}
+                                                  alt=""
+                                                  className="mt-1 max-h-32 w-auto rounded border object-contain"
+                                                />
+                                                <button
+                                                  type="button"
+                                                  className="mt-1 text-[11px] text-zinc-600 underline"
+                                                  onClick={() => setELineImageDataUrl(null)}
+                                                >
+                                                  Remove image
+                                                </button>
+                                              </div>
+                                            ) : null}
+                                          </div>
                                           <input
                                             value={eLineNotes}
                                             onChange={(e) => setELineNotes(e.target.value)}
@@ -1262,8 +1061,7 @@ export default function PendingPage() {
                                       ) : (
                                         <>
                                           <div className="font-medium text-zinc-900">
-                                            {it.title}{" "}
-                                            <span className="text-zinc-500">×{it.quantity}</span>
+                                            {it.title}
                                           </div>
                                           <div className="mt-0.5 text-[11px] text-zinc-600">
                                             {it.subtype === "deposit_presale"
@@ -1319,16 +1117,8 @@ export default function PendingPage() {
                               <input
                                 value={newLineTitle}
                                 onChange={(e) => setNewLineTitle(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
+                                className="w-full rounded border px-2 py-1 text-sm sm:col-span-2"
                                 placeholder="Title"
-                              />
-                              <input
-                                type="number"
-                                min={1}
-                                value={newLineQty}
-                                onChange={(e) => setNewLineQty(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Qty"
                               />
                               <select
                                 value={newLineSubtype}
@@ -1412,13 +1202,38 @@ export default function PendingPage() {
                                 placeholder="Expected release window (e.g. 2026-07, 2026-07 to 2026-08)"
                               />
                             </div>
-                            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="mt-2 space-y-1">
+                              <label className="block text-xs font-medium text-zinc-600">
+                                Image (optional)
+                              </label>
                               <input
-                                value={newLineImageUrl}
-                                onChange={(e) => setNewLineImageUrl(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Image URL (optional)"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleNewLineImageFile}
+                                className="text-xs"
                               />
+                              {newLineImageDataUrl ? (
+                                <div>
+                                  <div className="text-[11px] font-medium text-zinc-500">
+                                    Preview
+                                  </div>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={newLineImageDataUrl}
+                                    alt=""
+                                    className="mt-1 max-h-32 w-auto rounded border object-contain"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="mt-1 text-[11px] text-zinc-600 underline"
+                                    onClick={() => setNewLineImageDataUrl(null)}
+                                  >
+                                    Remove image
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="mt-2">
                               <input
                                 value={newLineNotes}
                                 onChange={(e) => setNewLineNotes(e.target.value)}
