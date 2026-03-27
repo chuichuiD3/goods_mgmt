@@ -6,6 +6,7 @@ import {
   type CollectionAddItemSubmitPayload,
 } from "@/components/CollectionAddItemForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
+import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type Item = {
   id: number;
@@ -106,7 +107,7 @@ export default function CollectionPage() {
               Total spend (owned)
             </div>
             <div className="mt-1 text-2xl font-semibold">
-              {totalSpend.toLocaleString()}
+              {formatPriceAmount(totalSpend)}
             </div>
           </div>
         </section>
@@ -189,7 +190,7 @@ export default function CollectionPage() {
                       </td>
                       <td className="border px-2 py-1">{item.status}</td>
                       <td className="border px-2 py-1">
-                        {item.totalAmount.toLocaleString()}
+                        {formatPriceAmount(item.totalAmount)}
                       </td>
                       <td className="border px-2 py-1">
                         <div className="flex flex-wrap gap-1 text-xs">

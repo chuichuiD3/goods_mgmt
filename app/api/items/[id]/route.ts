@@ -37,7 +37,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     price,
     quantity,
     totalAmount,
-    currency: body.currency ?? 'JPY',
     status: body.status ?? 'PENDING_PAYMENT',
     orderDate: body.orderDate ? new Date(body.orderDate) : null,
     paymentDeadline: body.paymentDeadline ? new Date(body.paymentDeadline) : null,
@@ -47,6 +46,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     sourceOrderId: body.sourceOrderId ?? null,
     notes: body.notes ?? null,
   };
+
+  if (Object.prototype.hasOwnProperty.call(body, 'currency')) {
+    updateData.currency =
+      typeof body.currency === 'string' && body.currency.trim() !== ''
+        ? body.currency.trim()
+        : 'CNY';
+  }
 
   // Important: Collection edit currently doesn't preload `imageUrl` (list API is thumbnail-only).
   // To avoid accidentally wiping images/thumbnails, treat empty string/undefined as "no change".

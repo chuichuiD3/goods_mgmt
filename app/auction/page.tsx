@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AuctionImportPanel } from "@/components/AuctionImportPanel";
 import { AuctionForm, type AuctionFormValues } from "@/components/AuctionForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
+import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type Auction = {
   id: number;
@@ -385,7 +386,7 @@ export default function AuctionPage() {
                         </div>
                         <div className="text-sm font-semibold text-zinc-900">
                           {auction.currentPrice !== null
-                            ? auction.currentPrice.toLocaleString()
+                            ? formatPriceAmount(auction.currentPrice)
                             : "—"}
                         </div>
                       </div>

@@ -37,7 +37,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
           price,
           quantity,
           totalAmount,
-          currency: "JPY",
+          currency: "CNY",
           status: "OWNED",
           orderDate: group.purchaseDate,
           sourceType: "DIRECT_PURCHASE",

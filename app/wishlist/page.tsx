@@ -6,6 +6,7 @@ import {
   type WishlistFormValues,
 } from "@/components/WishlistForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
+import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type WishlistItem = {
   id: number;
@@ -147,7 +148,7 @@ export default function WishlistPage() {
                   <tr>
                     <th className="border px-2 py-1 text-left">Item</th>
                     <th className="border px-2 py-1 text-left">Character</th>
-                    <th className="border px-2 py-1 text-left">Expected price</th>
+                    <th className="border px-2 py-1 text-left">Expected amount</th>
                     <th className="border px-2 py-1 text-left">Added at</th>
                     <th className="border px-2 py-1 text-left">Actions</th>
                   </tr>
@@ -160,7 +161,9 @@ export default function WishlistPage() {
                         {item.character ?? "-"}
                       </td>
                       <td className="border px-2 py-1">
-                        {item.expectedPrice ?? "-"}
+                        {item.expectedPrice != null
+                          ? formatPriceAmount(item.expectedPrice)
+                          : "-"}
                       </td>
                       <td className="border px-2 py-1">
                         {new Date(item.addedAt).toLocaleDateString()}

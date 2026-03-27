@@ -58,7 +58,7 @@ export async function POST(
           price: unitPrice,
           quantity: qty,
           totalAmount: total,
-          currency: "JPY",
+          currency: "CNY",
           status: "OWNED",
           orderDate: null,
           sourceType: "MERCHANT_PREORDER",

@@ -10,7 +10,6 @@ type ImportParsed = {
   rawPrice: string | null;
   rawImage: string | null;
   listedPrice: number | null;
-  currency: string;
   auctionEndAt: string | null;
   recommendedDestination: "AUCTION" | "COLLECTION";
 };

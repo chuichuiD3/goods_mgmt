@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { formatPriceAmount } from '@/lib/formatPriceAmount';
 
 export default async function Home() {
   const [pendingItems, ownedItems] = await Promise.all([
@@ -41,7 +42,7 @@ export default async function Home() {
               Total spend (owned)
             </div>
             <div className="mt-1 text-2xl font-semibold">
-              {ownedTotal.toLocaleString()}
+              {formatPriceAmount(ownedTotal)}
             </div>
           </div>
           <div className="rounded border bg-white p-4">
@@ -49,7 +50,7 @@ export default async function Home() {
               Pending payment total
             </div>
             <div className="mt-1 text-2xl font-semibold">
-              {pendingTotal.toLocaleString()}
+              {formatPriceAmount(pendingTotal)}
             </div>
           </div>
         </section>
@@ -79,7 +80,7 @@ export default async function Home() {
                     </div>
                   </div>
                   <div className="text-sm font-semibold">
-                    {item.totalAmount.toLocaleString()}
+                    {formatPriceAmount(item.totalAmount)}
                   </div>
                 </div>
               ))}
@@ -107,7 +108,7 @@ export default async function Home() {
                     </div>
                   </div>
                   <div className="text-sm font-semibold">
-                    {item.totalAmount.toLocaleString()}
+                    {formatPriceAmount(item.totalAmount)}
                   </div>
                 </div>
               ))}

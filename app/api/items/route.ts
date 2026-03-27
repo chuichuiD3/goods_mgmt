@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       price,
       quantity,
       totalAmount,
-      currency: body.currency ?? 'JPY',
+      currency: body.currency ?? 'CNY',
       status: body.status ?? 'PENDING_PAYMENT',
       orderDate: body.orderDate ? new Date(body.orderDate) : null,
       paymentDeadline: body.paymentDeadline ? new Date(body.paymentDeadline) : null,

@@ -9,7 +9,6 @@ export type ItemFormValues = {
   shop?: string;
   price?: number;
   quantity?: number;
-  currency?: string;
   status?: string;
   orderDate?: string;
   paymentDeadline?: string;
@@ -41,7 +40,6 @@ export function ItemForm({
     shop: initialValues?.shop ?? '',
     price: initialValues?.price ?? undefined,
     quantity: initialValues?.quantity ?? 1,
-    currency: initialValues?.currency ?? 'JPY',
     status: initialValues?.status ?? 'PENDING_PAYMENT',
     orderDate: initialValues?.orderDate,
     paymentDeadline: initialValues?.paymentDeadline,
@@ -117,7 +115,7 @@ export function ItemForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label className="block text-sm font-medium">Price</label>
           <input
@@ -140,15 +138,6 @@ export function ItemForm({
             onChange={(e) =>
               handleChange('quantity', e.target.value ? Number(e.target.value) : 1)
             }
-            className="w-full rounded border px-2 py-1 text-sm"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Currency</label>
-          <input
-            type="text"
-            value={values.currency ?? 'JPY'}
-            onChange={(e) => handleChange('currency', e.target.value)}
             className="w-full rounded border px-2 py-1 text-sm"
           />
         </div>

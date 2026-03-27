@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type MerchantPreorderSubtype = "full_payment_presale" | "deposit_presale";
 type MerchantPreorderGroupStatus = "open" | "received" | "cancelled";
@@ -912,25 +913,20 @@ export default function PendingPage() {
                                             className="w-full rounded border px-2 py-1 text-sm"
                                             placeholder="Title"
                                           />
-                                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                            <select
-                                              value={eLineSubtype}
-                                              onChange={(e) =>
-                                                setELineSubtype(
-                                                  e.target.value as MerchantPreorderSubtype
-                                                )
-                                              }
-                                              className="w-full rounded border px-2 py-1 text-sm"
-                                            >
-                                              <option value="full_payment_presale">
-                                                Full payment presale
-                                              </option>
-                                              <option value="deposit_presale">Deposit presale</option>
-                                            </select>
-                                            <div className="text-xs text-zinc-600 sm:pt-2">
-                                              Currency: JPY
-                                            </div>
-                                          </div>
+                                          <select
+                                            value={eLineSubtype}
+                                            onChange={(e) =>
+                                              setELineSubtype(
+                                                e.target.value as MerchantPreorderSubtype
+                                              )
+                                            }
+                                            className="w-full rounded border px-2 py-1 text-sm"
+                                          >
+                                            <option value="full_payment_presale">
+                                              Full payment presale
+                                            </option>
+                                            <option value="deposit_presale">Deposit presale</option>
+                                          </select>
 
                                           {eLineSubtype === "full_payment_presale" ? (
                                             <input
@@ -1113,11 +1109,11 @@ export default function PendingPage() {
                             <div className="mb-2 text-xs font-medium text-zinc-600">
                               Add line item
                             </div>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-2">
                               <input
                                 value={newLineTitle}
                                 onChange={(e) => setNewLineTitle(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm sm:col-span-2"
+                                className="w-full rounded border px-2 py-1 text-sm"
                                 placeholder="Title"
                               />
                               <select
@@ -1130,9 +1126,6 @@ export default function PendingPage() {
                                 <option value="full_payment_presale">Full payment presale</option>
                                 <option value="deposit_presale">Deposit presale</option>
                               </select>
-                              <div className="text-xs text-zinc-600 sm:pt-2">
-                                Currency: JPY
-                              </div>
                             </div>
                             {newLineSubtype === "full_payment_presale" ? (
                               <div className="mt-2">
@@ -1431,9 +1424,9 @@ export default function PendingPage() {
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
                             {count} item{count === 1 ? "" : "s"} · Total{" "}
-                            {total.toLocaleString()}
+                            {formatPriceAmount(total)}
                             {g.shippingThreshold != null
-                              ? ` / Threshold ${g.shippingThreshold.toLocaleString()}`
+                              ? ` / Threshold ${formatPriceAmount(g.shippingThreshold)}`
                               : ""}
                           </div>
                           <div className="mt-0.5 text-xs text-zinc-600">
@@ -1587,7 +1580,7 @@ export default function PendingPage() {
                                       <div>
                                         <div className="font-medium text-zinc-900">{it.name}</div>
                                         <div className="text-zinc-600">
-                                          {it.price.toLocaleString()} × {it.quantity}
+                                          {formatPriceAmount(it.price)} × {it.quantity}
                                         </div>
                                       </div>
                                     )}
@@ -1611,7 +1604,7 @@ export default function PendingPage() {
                                     ) : (
                                       <>
                                         <div className="text-zinc-900">
-                                          {(it.price * it.quantity).toLocaleString()}
+                                          {formatPriceAmount(it.price * it.quantity)}
                                         </div>
                                         <button
                                           className="rounded border px-2 py-1 text-[11px] hover:bg-zinc-100"
