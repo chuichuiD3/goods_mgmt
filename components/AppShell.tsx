@@ -9,7 +9,6 @@ const navItems = [
   { href: "/pending", label: "Pending" },
   { href: "/collection", label: "Collection" },
   { href: "/wishlist", label: "Wishlist" },
-  { href: "/import", label: "Import" },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

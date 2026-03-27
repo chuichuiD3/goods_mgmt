@@ -62,6 +62,8 @@ type ImportDraftCardProps = {
   onSaveAsAuction: () => void;
   onSaveAsWishlist: () => void;
   onSaveAsCollection: () => void;
+  /** When true, only the auction save action is shown (e.g. Auction page import). */
+  auctionImportOnly?: boolean;
 };
 
 export function ImportDraftCard({
@@ -81,6 +83,7 @@ export function ImportDraftCard({
   onSaveAsAuction,
   onSaveAsWishlist,
   onSaveAsCollection,
+  auctionImportOnly = false,
 }: ImportDraftCardProps) {
   const formatBeijing = (iso: string | null): string => {
     if (!iso) return "Not detected";
@@ -286,22 +289,26 @@ export function ImportDraftCard({
           onClick={onSaveAsAuction}
           className="rounded bg-zinc-900 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-800"
         >
-          Save as Auction
+          {auctionImportOnly ? "Save auction" : "Save as Auction"}
         </button>
-        <button
-          type="button"
-          onClick={onSaveAsCollection}
-          className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
-        >
-          Save to Collection
-        </button>
-        <button
-          type="button"
-          onClick={onSaveAsWishlist}
-          className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
-        >
-          Save to Wishlist
-        </button>
+        {!auctionImportOnly && (
+          <>
+            <button
+              type="button"
+              onClick={onSaveAsCollection}
+              className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
+            >
+              Save to Collection
+            </button>
+            <button
+              type="button"
+              onClick={onSaveAsWishlist}
+              className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
+            >
+              Save to Wishlist
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

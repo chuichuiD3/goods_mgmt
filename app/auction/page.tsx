@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AuctionImportPanel } from "@/components/AuctionImportPanel";
 import { AuctionForm, type AuctionFormValues } from "@/components/AuctionForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
 
@@ -154,6 +155,8 @@ export default function AuctionPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Auctions</h1>
       </div>
+
+      <AuctionImportPanel onAuctionSaved={loadAuctions} />
 
       {editingAuction && (
         <div className="mb-6 rounded border bg-white p-4">
