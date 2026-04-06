@@ -6,6 +6,7 @@ import {
   type CollectionAddItemSubmitPayload,
 } from "@/components/CollectionAddItemForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
+import { Modal } from "@/components/Modal";
 import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type Item = {
@@ -64,6 +65,8 @@ export default function CollectionPage() {
     await loadItems();
   };
 
+  const modalTitle = editingItem?.id ? "Edit item" : "New item";
+
   const handleUpdate = async (id: number, values: ItemFormValues) => {
     await fetch(`/api/items/${id}`, {
       method: "PUT",
@@ -113,10 +116,7 @@ export default function CollectionPage() {
         </section>
 
         {editingItem && (
-          <div className="mb-6 rounded border bg-white p-4">
-            <h2 className="mb-2 text-sm font-semibold">
-              {editingItem.id ? "Edit item" : "New item"}
-            </h2>
+          <Modal title={modalTitle} onClose={() => setEditingItem(null)}>
             {editingItem.id ? (
               <ItemForm
                 initialValues={{
@@ -134,7 +134,7 @@ export default function CollectionPage() {
             ) : (
               <CollectionAddItemForm onSubmit={handleCreateCollectionItem} />
             )}
-          </div>
+          </Modal>
         )}
 
         <div className="rounded border bg-white p-4">

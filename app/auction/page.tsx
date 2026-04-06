@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AuctionImportPanel } from "@/components/AuctionImportPanel";
 import { AuctionForm, type AuctionFormValues } from "@/components/AuctionForm";
 import { ItemForm, type ItemFormValues } from "@/components/ItemForm";
+import { Modal } from "@/components/Modal";
 import { formatPriceAmount } from "@/lib/formatPriceAmount";
 
 type Auction = {
@@ -32,6 +33,7 @@ export default function AuctionPage() {
   const [editingAuction, setEditingAuction] = useState<FullAuction | null>(null);
   const [creatingItemFromAuction, setCreatingItemFromAuction] =
     useState<FullAuction | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"ONGOING" | "ENDED">("ONGOING");
   const [now, setNow] = useState<Date>(() => new Date());
 
@@ -96,6 +98,11 @@ export default function AuctionPage() {
     await loadAuctions();
   };
 
+  const handleImportSaved = async () => {
+    setShowImportModal(false);
+    await loadAuctions();
+  };
+
   const handleEdit = async (auctionId: number) => {
     const res = await fetch(`/api/auctions/${auctionId}`);
     if (!res.ok) return;
@@ -155,13 +162,23 @@ export default function AuctionPage() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Auctions</h1>
+        <button
+          type="button"
+          onClick={() => setShowImportModal(true)}
+          className="rounded bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+        >
+          Import auction
+        </button>
       </div>
 
-      <AuctionImportPanel onAuctionSaved={loadAuctions} />
+      {showImportModal && (
+        <Modal title="Import auction" onClose={() => setShowImportModal(false)}>
+          <AuctionImportPanel onAuctionSaved={handleImportSaved} />
+        </Modal>
+      )}
 
       {editingAuction && (
-        <div className="mb-6 rounded border bg-white p-4">
-          <h2 className="mb-2 text-sm font-semibold">Edit auction</h2>
+        <Modal title="Edit auction" onClose={() => setEditingAuction(null)}>
           <AuctionForm
             initialValues={{
               itemName: editingAuction.itemName,
@@ -181,14 +198,14 @@ export default function AuctionPage() {
               editingAuction ? handleUpdate(editingAuction.id, values) : undefined
             }
           />
-        </div>
+        </Modal>
       )}
 
       {creatingItemFromAuction && (
-        <div className="mb-6 rounded border bg-white p-4">
-          <h2 className="mb-2 text-sm font-semibold">
-            Convert auction to item
-          </h2>
+        <Modal
+          title="Convert auction to item"
+          onClose={() => setCreatingItemFromAuction(null)}
+        >
           <ItemForm
             initialValues={{
               itemName: creatingItemFromAuction.itemName,
@@ -201,7 +218,7 @@ export default function AuctionPage() {
             onSubmit={createItemFromAuction}
             submitLabel="Create item from auction"
           />
-        </div>
+        </Modal>
       )}
 
       <div className="rounded border bg-white p-4">
