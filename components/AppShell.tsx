@@ -7,7 +7,8 @@ const navItems = [
   // Home (`/`) is de-emphasized: omitted from primary nav but not removed (frozen dashboard).
   // Top bar title is not a link; open `/` only by direct URL/bookmark if needed.
   { href: "/auction", label: "Auctions" },
-  { href: "/pending", label: "Pending" },
+  { href: "/merchant-preorders", label: "Merchant Preorders" },
+  { href: "/holding", label: "Holding" },
   { href: "/collection", label: "Collection" },
   // Wishlist is intentionally de-emphasized: hidden from primary nav but not removed.
   // It is a frozen feature (bugfixes only)—still reachable at /wishlist; routes/API/schema stay in use.
