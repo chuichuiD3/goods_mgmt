@@ -1,6 +1,6 @@
 /**
  * Home (`/`) — frozen / de-emphasized feature (not dead code).
- * Hidden from primary navigation; users can still open `/` via the header title link or typing the URL.
+ * Hidden from primary navigation; open `/` only by direct URL/bookmark (top bar title is not a link).
  * Bugfixes only unless product priorities change; core flows live under Auction / Pending / Collection.
  */
 import { prisma } from '@/lib/prisma';

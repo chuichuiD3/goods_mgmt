@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   // Home (`/`) is de-emphasized: omitted from primary nav but not removed (frozen dashboard).
-  // Still reachable via the "Goods management" title link or direct URL to `/`.
+  // Top bar title is not a link; open `/` only by direct URL/bookmark if needed.
   { href: "/auction", label: "Auctions" },
   { href: "/pending", label: "Pending" },
   { href: "/collection", label: "Collection" },
@@ -20,12 +20,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col">
       <header className="sticky top-0 z-10 border-b bg-white shrink-0">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <Link
-            href="/"
-            className="text-lg font-semibold text-zinc-900 hover:text-zinc-700"
-          >
+          <span className="shrink-0 cursor-default text-lg font-semibold text-zinc-900">
             Goods management
-          </Link>
+          </span>
           <nav
             className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-thin sm:gap-2"
             aria-label="Main navigation"
