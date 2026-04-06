@@ -166,31 +166,29 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded border bg-white p-4 text-sm">
           <h3 className="text-sm font-semibold">Manual entry</h3>
-          <div className="space-y-3 rounded border bg-zinc-50 p-3 text-sm">
-            <ImportDraftCard
-              sourceUrl={auctionDraftSourceUrl}
-              platform={auctionDraftPlatform}
-              title={auctionDraftTitle}
-              imageUrl={auctionDraftImage}
-              listedPrice={
-                auctionDraftPrice.trim() !== ""
-                  ? Number(auctionDraftPrice)
-                  : null
-              }
-              auctionEndAt={auctionDraftEndIso || null}
-              recommendedDestination="AUCTION"
-              onChangeImage={setAuctionDraftImage}
-              onChangeTitle={setAuctionDraftTitle}
-              onChangePlatform={setAuctionDraftPlatform}
-              onChangeSourceUrl={setAuctionDraftSourceUrl}
-              onChangePrice={setAuctionDraftPrice}
-              onChangeAuctionEndAt={setAuctionDraftEndIso}
-              onSaveAsAuction={saveManualAuction}
-              onSaveAsCollection={noop}
-              onSaveAsWishlist={noop}
-              auctionImportOnly
-            />
-          </div>
+          <ImportDraftCard
+            sourceUrl={auctionDraftSourceUrl}
+            platform={auctionDraftPlatform}
+            title={auctionDraftTitle}
+            imageUrl={auctionDraftImage}
+            listedPrice={
+              auctionDraftPrice.trim() !== ""
+                ? Number(auctionDraftPrice)
+                : null
+            }
+            auctionEndAt={auctionDraftEndIso || null}
+            recommendedDestination="AUCTION"
+            onChangeImage={setAuctionDraftImage}
+            onChangeTitle={setAuctionDraftTitle}
+            onChangePlatform={setAuctionDraftPlatform}
+            onChangeSourceUrl={setAuctionDraftSourceUrl}
+            onChangePrice={setAuctionDraftPrice}
+            onChangeAuctionEndAt={setAuctionDraftEndIso}
+            onSaveAsAuction={saveManualAuction}
+            onSaveAsCollection={noop}
+            onSaveAsWishlist={noop}
+            auctionImportOnly
+          />
         </div>
 
         <div className="space-y-3 rounded border bg-white p-4 text-sm">
