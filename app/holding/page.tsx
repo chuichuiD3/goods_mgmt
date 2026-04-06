@@ -308,143 +308,6 @@ export default function HoldingPage() {
     await loadHolding();
   };
 
-  const groupFormContent = (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Seller</label>
-          <input
-            value={gSeller}
-            onChange={(e) => setGSeller(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Seller / streamer"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Platform</label>
-          <input
-            value={gPlatform}
-            onChange={(e) => setGPlatform(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Optional"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Purchase date</label>
-          <input
-            type="date"
-            value={gPurchaseDate}
-            onChange={(e) => setGPurchaseDate(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Time mode</label>
-          <select
-            value={gTimeMode}
-            onChange={(e) => setGTimeMode(e.target.value as HoldingOrderTimeMode)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          >
-            <option value="duration">Duration-based</option>
-            <option value="fixed_date">Fixed date</option>
-            <option value="none">None</option>
-          </select>
-        </div>
-
-        {gTimeMode === "duration" && (
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-600">Duration</label>
-            <select
-              value={gDurationPreset}
-              onChange={(e) => setGDurationPreset(e.target.value)}
-              className="w-full rounded border px-2 py-1 text-sm"
-            >
-              <option value="30">1 month (30 days)</option>
-              <option value="90">3 months (90 days)</option>
-              <option value="180">6 months (180 days)</option>
-              <option value="custom">Custom days</option>
-            </select>
-          </div>
-        )}
-
-        {gTimeMode === "duration" && gDurationPreset === "custom" && (
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-600">Custom days</label>
-            <input
-              type="number"
-              min={1}
-              value={gDurationCustom}
-              onChange={(e) => setGDurationCustom(e.target.value)}
-              className="w-full rounded border px-2 py-1 text-sm"
-              placeholder="e.g. 120"
-            />
-          </div>
-        )}
-
-        {gTimeMode === "fixed_date" && (
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-600">Deadline date</label>
-            <input
-              type="date"
-              value={gFixedDate}
-              onChange={(e) => setGFixedDate(e.target.value)}
-              className="w-full rounded border px-2 py-1 text-sm"
-            />
-          </div>
-        )}
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Shipping threshold</label>
-          <input
-            type="number"
-            value={gShippingThreshold}
-            onChange={(e) => setGShippingThreshold(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Optional"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Status</label>
-          <select
-            value={gStatus}
-            onChange={(e) => setGStatus(e.target.value as HoldingOrderStatus)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          >
-            <option value="holding">holding</option>
-            <option value="ready_to_ship">ready_to_ship</option>
-            <option value="shipped">shipped</option>
-            <option value="received">received</option>
-          </select>
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <label className="block text-xs font-medium text-zinc-600">Note</label>
-          <input
-            value={gNote}
-            onChange={(e) => setGNote(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Optional"
-          />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={createHoldingGroup}
-          disabled={gSeller.trim() === ""}
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
-          {editingHoldingGroupId ? "Save changes" : "Create group"}
-        </button>
-        <button
-          type="button"
-          onClick={cancelEditHoldingGroup}
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
@@ -468,7 +331,137 @@ export default function HoldingPage() {
           title={editingHoldingGroupId ? "Edit holding group" : "New holding group"}
           onClose={cancelEditHoldingGroup}
         >
-          {groupFormContent}
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Seller</label>
+                <input
+                  value={gSeller}
+                  onChange={(e) => setGSeller(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Seller / streamer"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Platform</label>
+                <input
+                  value={gPlatform}
+                  onChange={(e) => setGPlatform(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Purchase date</label>
+                <input
+                  type="date"
+                  value={gPurchaseDate}
+                  onChange={(e) => setGPurchaseDate(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Time mode</label>
+                <select
+                  value={gTimeMode}
+                  onChange={(e) => setGTimeMode(e.target.value as HoldingOrderTimeMode)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                >
+                  <option value="duration">Duration-based</option>
+                  <option value="fixed_date">Fixed date</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              {gTimeMode === "duration" && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Duration</label>
+                  <select
+                    value={gDurationPreset}
+                    onChange={(e) => setGDurationPreset(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  >
+                    <option value="30">1 month (30 days)</option>
+                    <option value="90">3 months (90 days)</option>
+                    <option value="180">6 months (180 days)</option>
+                    <option value="custom">Custom days</option>
+                  </select>
+                </div>
+              )}
+              {gTimeMode === "duration" && gDurationPreset === "custom" && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Custom days</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={gDurationCustom}
+                    onChange={(e) => setGDurationCustom(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    placeholder="e.g. 120"
+                  />
+                </div>
+              )}
+              {gTimeMode === "fixed_date" && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Deadline date</label>
+                  <input
+                    type="date"
+                    value={gFixedDate}
+                    onChange={(e) => setGFixedDate(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                  />
+                </div>
+              )}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Shipping threshold</label>
+                <input
+                  type="number"
+                  value={gShippingThreshold}
+                  onChange={(e) => setGShippingThreshold(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Status</label>
+                <select
+                  value={gStatus}
+                  onChange={(e) => setGStatus(e.target.value as HoldingOrderStatus)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                >
+                  <option value="holding">holding</option>
+                  <option value="ready_to_ship">ready_to_ship</option>
+                  <option value="shipped">shipped</option>
+                  <option value="received">received</option>
+                </select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-xs font-medium text-zinc-600">Note</label>
+                <input
+                  value={gNote}
+                  onChange={(e) => setGNote(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={createHoldingGroup}
+                disabled={gSeller.trim() === ""}
+                className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                {editingHoldingGroupId ? "Save changes" : "Create group"}
+              </button>
+              <button
+                type="button"
+                onClick={cancelEditHoldingGroup}
+                className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
 

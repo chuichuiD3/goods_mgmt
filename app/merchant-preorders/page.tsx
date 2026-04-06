@@ -374,75 +374,6 @@ export default function MerchantPreordersPage() {
     await loadMerchant();
   };
 
-  const groupFormContent = (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Seller</label>
-          <input
-            value={mSeller}
-            onChange={(e) => setMSeller(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Shop / seller"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Platform</label>
-          <input
-            value={mPlatform}
-            onChange={(e) => setMPlatform(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-            placeholder="Optional"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-600">Group status</label>
-          <select
-            value={mGroupStatus}
-            onChange={(e) => setMGroupStatus(e.target.value as MerchantPreorderGroupStatus)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          >
-            <option value="open">open</option>
-            <option value="received">received</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <label className="block text-xs font-medium text-zinc-600">
-            Group notes (optional)
-          </label>
-          <input
-            value={mGroupNotes}
-            onChange={(e) => setMGroupNotes(e.target.value)}
-            className="w-full rounded border px-2 py-1 text-sm"
-          />
-        </div>
-      </div>
-      {!editingMerchantGroupId ? (
-        <p className="text-xs text-zinc-500">
-          Create the order first, then expand it below to add line items.
-        </p>
-      ) : null}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={editingMerchantGroupId ? saveMerchantGroup : createMerchantGroup}
-          disabled={mSeller.trim() === ""}
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
-          {editingMerchantGroupId ? "Save changes" : "Create"}
-        </button>
-        <button
-          type="button"
-          onClick={cancelEditMerchantGroup}
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
@@ -466,7 +397,72 @@ export default function MerchantPreordersPage() {
           title={editingMerchantGroupId ? "Edit merchant order" : "New merchant order"}
           onClose={cancelEditMerchantGroup}
         >
-          {groupFormContent}
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Seller</label>
+                <input
+                  value={mSeller}
+                  onChange={(e) => setMSeller(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Shop / seller"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Platform</label>
+                <input
+                  value={mPlatform}
+                  onChange={(e) => setMPlatform(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-600">Group status</label>
+                <select
+                  value={mGroupStatus}
+                  onChange={(e) => setMGroupStatus(e.target.value as MerchantPreorderGroupStatus)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                >
+                  <option value="open">open</option>
+                  <option value="received">received</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-xs font-medium text-zinc-600">
+                  Group notes (optional)
+                </label>
+                <input
+                  value={mGroupNotes}
+                  onChange={(e) => setMGroupNotes(e.target.value)}
+                  className="w-full rounded border px-2 py-1 text-sm"
+                />
+              </div>
+            </div>
+            {!editingMerchantGroupId ? (
+              <p className="text-xs text-zinc-500">
+                Create the order first, then expand it below to add line items.
+              </p>
+            ) : null}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={editingMerchantGroupId ? saveMerchantGroup : createMerchantGroup}
+                disabled={mSeller.trim() === ""}
+                className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                {editingMerchantGroupId ? "Save changes" : "Create"}
+              </button>
+              <button
+                type="button"
+                onClick={cancelEditMerchantGroup}
+                className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
 
