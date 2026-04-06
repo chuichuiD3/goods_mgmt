@@ -32,8 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {navItems.map(({ href, label }) => {
               const isActive =
-                pathname === href ||
-                (href !== "/" && pathname.startsWith(href));
+                pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
                   key={href}
