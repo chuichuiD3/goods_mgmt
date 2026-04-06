@@ -1,3 +1,7 @@
+/**
+ * @deprecated Legacy mark-received for flat `MerchantPreorderItem`.
+ * Current flow: `POST /api/pending/merchant-line-items/[id]/mark-received`.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { makeThumbnailDataUrl } from "@/lib/imageThumb";

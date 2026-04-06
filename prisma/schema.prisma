@@ -10,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Legacy: only `MerchantPreorderItem.status`. Groups use `MerchantPreorderGroupStatus`; line items use `received` boolean + subtype.
 enum MerchantPreorderStatus {
   ordered
   pending_final_payment
@@ -115,6 +116,8 @@ model ImportDraft {
   createdAt    DateTime        @default(now())
 }
 
+// @deprecated Legacy flat merchant preorder (one row = full preorder). New data model:
+// MerchantPreorderGroup + MerchantPreorderLineItem. APIs: merchant-groups / merchant-line-items.
 model MerchantPreorderItem {
   id           Int                    @id @default(autoincrement())
   name         String
@@ -143,7 +146,7 @@ model MerchantPreorderGroup {
   sellerName    String
   platform      String?
 
-  // TEMP (legacy): will be migrated to line items, then removed
+  // TEMP (legacy migration from flat MerchantPreorderItem → line items): remove after backfill + column drop
   subtype       MerchantPreorderSubtype @default(full_payment_presale)
   amountPaid    Float?
   depositPaidAt DateTime?

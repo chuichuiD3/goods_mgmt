@@ -1,3 +1,7 @@
+/**
+ * Legacy one-off: migrates flat MerchantPreorderItem rows → MerchantPreorderGroup +
+ * MerchantPreorderLineItem. Not part of runtime app flow. New preorders use merchant-groups API.
+ */
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

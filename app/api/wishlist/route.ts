@@ -1,3 +1,7 @@
+/**
+ * Wishlist REST API — frozen / de-emphasized module (see app/wishlist/page.tsx, AppShell nav).
+ * Kept for direct URL and existing data; not linked from primary nav.
+ */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 

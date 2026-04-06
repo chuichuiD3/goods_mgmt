@@ -64,6 +64,8 @@ type ImportDraftCardProps = {
   onSaveAsCollection: () => void;
   /** When true, only the auction save action is shown (e.g. Auction page import). */
   auctionImportOnly?: boolean;
+  /** When false (default), "Save to Wishlist" is hidden even if collection/auction extras show. */
+  showWishlistAction?: boolean;
 };
 
 export function ImportDraftCard({
@@ -84,6 +86,7 @@ export function ImportDraftCard({
   onSaveAsWishlist,
   onSaveAsCollection,
   auctionImportOnly = false,
+  showWishlistAction = false,
 }: ImportDraftCardProps) {
   const formatBeijing = (iso: string | null): string => {
     if (!iso) return "Not detected";
@@ -300,13 +303,15 @@ export function ImportDraftCard({
             >
               Save to Collection
             </button>
-            <button
-              type="button"
-              onClick={onSaveAsWishlist}
-              className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
-            >
-              Save to Wishlist
-            </button>
+            {showWishlistAction ? (
+              <button
+                type="button"
+                onClick={onSaveAsWishlist}
+                className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100"
+              >
+                Save to Wishlist
+              </button>
+            ) : null}
           </>
         )}
       </div>

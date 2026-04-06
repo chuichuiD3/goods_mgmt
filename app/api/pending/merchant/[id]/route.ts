@@ -1,3 +1,7 @@
+/**
+ * @deprecated Legacy flat merchant preorder API — PUT/DELETE for `MerchantPreorderItem`.
+ * Prefer `merchant-groups` + `merchant-line-items` for new work. See `../route.ts`.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {

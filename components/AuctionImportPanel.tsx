@@ -217,7 +217,7 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
               >
                 <option value="UNKNOWN">Let app guess</option>
                 <option value="AUCTION">Auction</option>
-                <option value="WISHLIST">Wishlist</option>
+                {/* WISHLIST hint omitted in UI while Wishlist is de-emphasized; API/parser still accept hint if needed. */}
                 <option value="PURCHASE">Purchase</option>
               </select>
             </div>

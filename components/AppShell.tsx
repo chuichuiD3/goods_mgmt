@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/", label: "Home" },
+  // Home (`/`) is de-emphasized: omitted from primary nav but not removed (frozen dashboard).
+  // Still reachable via the "Goods management" title link or direct URL to `/`.
   { href: "/auction", label: "Auctions" },
   { href: "/pending", label: "Pending" },
   { href: "/collection", label: "Collection" },
-  { href: "/wishlist", label: "Wishlist" },
+  // Wishlist is intentionally de-emphasized: hidden from primary nav but not removed.
+  // It is a frozen feature (bugfixes only)—still reachable at /wishlist; routes/API/schema stay in use.
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

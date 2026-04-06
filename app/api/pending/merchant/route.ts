@@ -1,3 +1,9 @@
+/**
+ * @deprecated Legacy flat merchant preorder API (single `MerchantPreorderItem` per row).
+ * The app UI uses `merchant-groups` + `merchant-line-items` instead. Do not add new features
+ * here; new work should target `/api/pending/merchant-groups` and `/api/pending/merchant-line-items`.
+ * Kept for backward compatibility / external callers until removed.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { MerchantPreorderStatus, MerchantPreorderSubtype } from "@prisma/client";

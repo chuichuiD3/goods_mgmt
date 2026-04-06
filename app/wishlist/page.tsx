@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Wishlist — frozen / de-emphasized feature (not dead code).
+ * Hidden from primary navigation; no new product work expected here unless priorities change.
+ * Same module: /api/wishlist, Prisma WishlistItem, components/WishlistForm.tsx.
+ */
 import { useEffect, useState } from "react";
 import {
   WishlistForm,
