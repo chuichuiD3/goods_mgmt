@@ -326,6 +326,72 @@ export default function HoldingPage() {
         </div>
       </div>
 
+      {showAddItemModal && expandedHoldingGroupId !== null && (
+        <Modal title="Add item" onClose={() => setShowAddItemModal(false)}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <input
+                value={iName}
+                onChange={(e) => setIName(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+                placeholder="Name"
+              />
+              <input
+                type="number"
+                value={iPrice}
+                onChange={(e) => setIPrice(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+                placeholder="Price"
+              />
+              <input
+                type="number"
+                min={1}
+                value={iQty}
+                onChange={(e) => setIQty(e.target.value)}
+                className="w-full rounded border px-2 py-1 text-sm"
+                placeholder="Qty"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-zinc-600">Image</div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) { setIImageUrl(null); return; }
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    if (typeof reader.result === "string") setIImageUrl(reader.result);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="mt-1 text-xs"
+              />
+              {iImageUrl && (
+                <div>
+                  <div className="text-xs font-medium text-zinc-500">Preview</div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={iImageUrl}
+                    alt="Holding item preview"
+                    className="mt-1 max-h-40 w-auto rounded border object-contain"
+                  />
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              disabled={iName.trim() === ""}
+              onClick={() => addHoldingItemToGroup(expandedHoldingGroupId)}
+            >
+              Add
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {showGroupModal && (
         <Modal
           title={editingHoldingGroupId ? "Edit holding group" : "New holding group"}
@@ -701,80 +767,6 @@ export default function HoldingPage() {
                           + Add item
                         </button>
                       </div>
-
-                      {showAddItemModal && expandedHoldingGroupId === g.id && (
-                        <Modal
-                          title="Add item"
-                          onClose={() => setShowAddItemModal(false)}
-                        >
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                              <input
-                                value={iName}
-                                onChange={(e) => setIName(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Name"
-                              />
-                              <input
-                                type="number"
-                                value={iPrice}
-                                onChange={(e) => setIPrice(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Price"
-                              />
-                              <input
-                                type="number"
-                                min={1}
-                                value={iQty}
-                                onChange={(e) => setIQty(e.target.value)}
-                                className="w-full rounded border px-2 py-1 text-sm"
-                                placeholder="Qty"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-xs font-medium text-zinc-600">Image</div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) {
-                                    setIImageUrl(null);
-                                    return;
-                                  }
-                                  const reader = new FileReader();
-                                  reader.onload = () => {
-                                    if (typeof reader.result === "string") {
-                                      setIImageUrl(reader.result);
-                                    }
-                                  };
-                                  reader.readAsDataURL(file);
-                                }}
-                                className="mt-1 text-xs"
-                              />
-                              {iImageUrl && (
-                                <div>
-                                  <div className="text-xs font-medium text-zinc-500">Preview</div>
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={iImageUrl}
-                                    alt="Holding item preview"
-                                    className="mt-1 max-h-40 w-auto rounded border object-contain"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              className="rounded bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-                              disabled={iName.trim() === ""}
-                              onClick={() => addHoldingItemToGroup(g.id)}
-                            >
-                              Add
-                            </button>
-                          </div>
-                        </Modal>
-                      )}
                     </div>
                   )}
                 </div>
