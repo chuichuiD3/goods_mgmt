@@ -338,7 +338,7 @@ export default function HoldingPage() {
           onClick={() => setShowGroupModal(true)}
           className="rounded bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
         >
-          New group
+          New batch
         </button>
       </div>
 
@@ -410,18 +410,18 @@ export default function HoldingPage() {
 
       {showGroupModal && (
         <Modal
-          title={editingHoldingGroupId ? "Edit holding group" : "New holding group"}
+          title={editingHoldingGroupId ? "Edit holding batch" : "New holding batch"}
           onClose={cancelEditHoldingGroup}
         >
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-zinc-600">Seller</label>
+                <label className="block text-xs font-medium text-zinc-600">Batch seller</label>
                 <input
                   value={gSeller}
                   onChange={(e) => setGSeller(e.target.value)}
                   className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Seller / streamer"
+                  placeholder="Seller / shop"
                 />
               </div>
               <div className="space-y-1">
