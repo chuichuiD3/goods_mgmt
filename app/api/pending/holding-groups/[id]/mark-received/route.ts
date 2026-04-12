@@ -50,7 +50,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
     return await tx.holdingOrderGroup.update({
       where: { id },
-      data: { status: "received" },
+      data: { status: "received", receivedAt: new Date() },
       include: { items: { orderBy: { id: "asc" } } },
     });
   });

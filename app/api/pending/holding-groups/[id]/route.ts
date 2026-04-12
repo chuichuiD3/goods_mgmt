@@ -62,6 +62,19 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     computedDeadline = deadline;
   }
 
+  const newStatus: HoldingOrderStatus | undefined = isHoldingStatus(body.status)
+    ? body.status
+    : undefined;
+
+  // Stamp receivedAt only on the first transition into "received";
+  // clear it if the status is explicitly moved away from "received".
+  let receivedAtUpdate: Date | null | undefined = undefined;
+  if (newStatus === "received" && existing.status !== "received") {
+    receivedAtUpdate = new Date();
+  } else if (newStatus !== undefined && newStatus !== "received" && existing.status === "received") {
+    receivedAtUpdate = null;
+  }
+
   const updated = await prisma.holdingOrderGroup.update({
     where: { id },
     data: {
@@ -78,8 +91,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           : body.shippingThreshold === null || body.shippingThreshold === ""
             ? null
             : Number(body.shippingThreshold),
-      status: isHoldingStatus(body.status) ? body.status : undefined,
+      status: newStatus,
       note: body.note ?? undefined,
+      ...(receivedAtUpdate !== undefined ? { receivedAt: receivedAtUpdate } : {}),
     },
     include: { items: { orderBy: { id: "asc" } } },
   });

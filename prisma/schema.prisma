@@ -207,6 +207,7 @@ model HoldingOrderGroup {
   shippingThreshold Float?
   status            HoldingOrderStatus @default(holding)
   note              String?
+  receivedAt        DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

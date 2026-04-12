@@ -16,9 +16,22 @@ function isTimeMode(v: unknown): v is HoldingOrderTimeMode {
 
 export async function GET() {
   const groups = await prisma.holdingOrderGroup.findMany({
-    orderBy: { updatedAt: "desc" },
     include: { items: { orderBy: { id: "asc" } } },
   });
+
+  // Sort: non-received groups first (by createdAt desc), received groups last (by receivedAt desc).
+  groups.sort((a, b) => {
+    const aIsReceived = a.status === "received";
+    const bIsReceived = b.status === "received";
+    if (aIsReceived !== bIsReceived) return aIsReceived ? 1 : -1;
+    if (aIsReceived && bIsReceived) {
+      const aTime = a.receivedAt?.getTime() ?? a.createdAt.getTime();
+      const bTime = b.receivedAt?.getTime() ?? b.createdAt.getTime();
+      return bTime - aTime;
+    }
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+
   return NextResponse.json(groups);
 }
 
