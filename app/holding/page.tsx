@@ -29,6 +29,7 @@ type HoldingOrderGroup = {
   shippingThreshold: number | null;
   status: HoldingOrderStatus;
   note: string | null;
+  receivedAt: string | null;
   items: HoldingOrderItem[];
 };
 
@@ -65,6 +66,7 @@ export default function HoldingPage() {
   const [now, setNow] = useState<Date>(() => new Date());
   const [holding, setHolding] = useState<HoldingOrderGroup[]>([]);
   const [holdingLoading, setHoldingLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"HOLDING" | "RECEIVED">("HOLDING");
   const [expandedHoldingGroupId, setExpandedHoldingGroupId] = useState<number | null>(null);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
@@ -115,10 +117,15 @@ export default function HoldingPage() {
   }, []);
 
   const holdingCounts = useMemo(() => {
-    const total = holding.length;
     const active = holding.filter((g) => g.status !== "received").length;
-    return { total, active };
+    const received = holding.filter((g) => g.status === "received").length;
+    return { active, received };
   }, [holding]);
+
+  const toRender = useMemo(() => {
+    if (activeTab === "HOLDING") return holding.filter((g) => g.status !== "received");
+    return holding.filter((g) => g.status === "received");
+  }, [holding, activeTab]);
 
   const groupTotals = useMemo(() => {
     const totals = new Map<number, number>();
@@ -326,18 +333,13 @@ export default function HoldingPage() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Holding</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-500">
-            {holdingCounts.active} active / {holdingCounts.total} total groups
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowGroupModal(true)}
-            className="rounded bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            New group
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowGroupModal(true)}
+          className="rounded bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+        >
+          New group
+        </button>
       </div>
 
       {showAddItemModal && expandedHoldingGroupId !== null ? (
@@ -545,13 +547,50 @@ export default function HoldingPage() {
         </Modal>
       )}
 
-        {holdingLoading ? (
-          <div className="text-xs text-zinc-500">Loading…</div>
-        ) : holding.length === 0 ? (
-          <div className="text-xs text-zinc-500">No holding groups.</div>
-        ) : (
-          <div className="space-y-3">
-            {holding.map((g) => {
+        <div className="rounded border bg-white p-4">
+          {/* Tab strip */}
+          <div className="flex items-center gap-2 border-b pb-2 text-xs font-medium">
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1 ${
+                activeTab === "HOLDING"
+                  ? "bg-zinc-900 text-white"
+                  : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+              onClick={() => {
+                setActiveTab("HOLDING");
+                setExpandedHoldingGroupId(null);
+                setShowAddItemModal(false);
+              }}
+            >
+              Holding ({holdingCounts.active})
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1 ${
+                activeTab === "RECEIVED"
+                  ? "bg-zinc-900 text-white"
+                  : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+              onClick={() => {
+                setActiveTab("RECEIVED");
+                setExpandedHoldingGroupId(null);
+                setShowAddItemModal(false);
+              }}
+            >
+              Received ({holdingCounts.received})
+            </button>
+          </div>
+
+          {holdingLoading ? (
+            <div className="mt-3 text-xs text-zinc-500">Loading…</div>
+          ) : toRender.length === 0 ? (
+            <div className="mt-3 text-xs text-zinc-500">
+              {activeTab === "HOLDING" ? "No active holding groups." : "No received groups yet."}
+            </div>
+          ) : (
+          <div className="mt-3 space-y-3">
+            {toRender.map((g) => {
               const total = groupTotals.get(g.id) ?? 0;
               const expanded = expandedHoldingGroupId === g.id;
               const count = g.items.length;
@@ -686,7 +725,8 @@ export default function HoldingPage() {
               );
             })}
           </div>
-        )}
+          )}
+        </div>
     </div>
   );
 }
