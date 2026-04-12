@@ -589,166 +589,200 @@ export default function MerchantPreordersPage() {
           onClose={cancelEditMerchantGroup}
         >
           <div className="space-y-3">
-            {/* ── Order info ── */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-zinc-600">Seller</label>
-                <input
-                  value={mSeller}
-                  onChange={(e) => setMSeller(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Shop / seller"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-zinc-600">Platform</label>
-                <input
-                  value={mPlatform}
-                  onChange={(e) => setMPlatform(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Optional"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-zinc-600">Group status</label>
-                <select
-                  value={mGroupStatus}
-                  onChange={(e) => setMGroupStatus(e.target.value as MerchantPreorderGroupStatus)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                >
-                  <option value="open">open</option>
-                  <option value="received">received</option>
-                  <option value="cancelled">cancelled</option>
-                </select>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <label className="block text-xs font-medium text-zinc-600">
-                  Group notes (optional)
-                </label>
-                <input
-                  value={mGroupNotes}
-                  onChange={(e) => setMGroupNotes(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                />
-              </div>
-            </div>
-
-            {/* ── First item (create mode only) ── */}
-            {!editingMerchantGroupId && (
-              <div className="space-y-2 border-t pt-3">
-                <p className="text-xs font-medium text-zinc-700">First item</p>
-                <p className="text-[11px] text-zinc-400">Optional — you can add items later from the order view.</p>
-                <div className="grid grid-cols-1 gap-2">
+            {editingMerchantGroupId ? (
+              /* ── Edit mode: order info + status ── */
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Seller</label>
                   <input
-                    value={newLineTitle}
-                    onChange={(e) => setNewLineTitle(e.target.value)}
+                    value={mSeller}
+                    onChange={(e) => setMSeller(e.target.value)}
                     className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Item title"
+                    placeholder="Shop / seller"
                   />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Platform</label>
+                  <input
+                    value={mPlatform}
+                    onChange={(e) => setMPlatform(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-zinc-600">Group status</label>
                   <select
-                    value={newLineSubtype}
-                    onChange={(e) => setNewLineSubtype(e.target.value as MerchantPreorderSubtype)}
+                    value={mGroupStatus}
+                    onChange={(e) => setMGroupStatus(e.target.value as MerchantPreorderGroupStatus)}
                     className="w-full rounded border px-2 py-1 text-sm"
                   >
-                    <option value="full_payment_presale">Full payment presale</option>
-                    <option value="deposit_presale">Deposit presale</option>
+                    <option value="open">open</option>
+                    <option value="received">received</option>
+                    <option value="cancelled">cancelled</option>
                   </select>
                 </div>
-                {newLineSubtype === "full_payment_presale" ? (
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Group notes (optional)
+                  </label>
                   <input
-                    type="number"
-                    value={newLineAmountPaidTotal}
-                    onChange={(e) => setNewLineAmountPaidTotal(e.target.value)}
+                    value={mGroupNotes}
+                    onChange={(e) => setMGroupNotes(e.target.value)}
                     className="w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Amount paid total (optional)"
                   />
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <input
-                      type="date"
-                      value={newLineDepositPaidAt}
-                      onChange={(e) => setNewLineDepositPaidAt(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      type="number"
-                      value={newLineDepositAmount}
-                      onChange={(e) => setNewLineDepositAmount(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                      placeholder="Deposit amount (optional)"
-                    />
-                    <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={newLineFinalPaid}
-                        onChange={(e) => setNewLineFinalPaid(e.target.checked)}
-                      />
-                      Final paid
-                    </label>
-                    <input
-                      type="date"
-                      value={newLineFinalPaidAt}
-                      onChange={(e) => setNewLineFinalPaidAt(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                      disabled={!newLineFinalPaid}
-                    />
-                    <input
-                      type="number"
-                      value={newLineFinalAmount}
-                      onChange={(e) => setNewLineFinalAmount(e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-sm"
-                      placeholder="Final amount (optional)"
-                      disabled={!newLineFinalPaid}
-                    />
-                    <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={newLineOwned}
-                        onChange={(e) => setNewLineOwned(e.target.checked)}
-                      />
-                      Owned
-                    </label>
-                  </div>
-                )}
-                <input
-                  value={newLineExpectedReleaseWindow}
-                  onChange={(e) => setNewLineExpectedReleaseWindow(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Expected release window (e.g. 2026-07)"
-                />
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-zinc-600">Image (optional)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleNewLineImageFile}
-                    className="text-xs"
-                  />
-                  {newLineImageDataUrl ? (
-                    <div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={newLineImageDataUrl}
-                        alt=""
-                        className="mt-1 max-h-28 w-auto rounded border object-contain"
-                      />
-                      <button
-                        type="button"
-                        className="mt-1 text-[11px] text-zinc-600 underline"
-                        onClick={() => setNewLineImageDataUrl(null)}
-                      >
-                        Remove image
-                      </button>
-                    </div>
-                  ) : null}
                 </div>
-                <input
-                  value={newLineNotes}
-                  onChange={(e) => setNewLineNotes(e.target.value)}
-                  className="w-full rounded border px-2 py-1 text-sm"
-                  placeholder="Item notes (optional)"
-                />
               </div>
+            ) : (
+              /* ── Create mode: item first, then order details ── */
+              <>
+                {/* First item */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
+                    <input
+                      value={newLineTitle}
+                      onChange={(e) => setNewLineTitle(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      placeholder="Item title (optional)"
+                    />
+                    <select
+                      value={newLineSubtype}
+                      onChange={(e) => setNewLineSubtype(e.target.value as MerchantPreorderSubtype)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                    >
+                      <option value="full_payment_presale">Full payment presale</option>
+                      <option value="deposit_presale">Deposit presale</option>
+                    </select>
+                  </div>
+                  {newLineSubtype === "full_payment_presale" ? (
+                    <input
+                      type="number"
+                      value={newLineAmountPaidTotal}
+                      onChange={(e) => setNewLineAmountPaidTotal(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      placeholder="Amount paid total (optional)"
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <input
+                        type="date"
+                        value={newLineDepositPaidAt}
+                        onChange={(e) => setNewLineDepositPaidAt(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                      <input
+                        type="number"
+                        value={newLineDepositAmount}
+                        onChange={(e) => setNewLineDepositAmount(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Deposit amount (optional)"
+                      />
+                      <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newLineFinalPaid}
+                          onChange={(e) => setNewLineFinalPaid(e.target.checked)}
+                        />
+                        Final paid
+                      </label>
+                      <input
+                        type="date"
+                        value={newLineFinalPaidAt}
+                        onChange={(e) => setNewLineFinalPaidAt(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        disabled={!newLineFinalPaid}
+                      />
+                      <input
+                        type="number"
+                        value={newLineFinalAmount}
+                        onChange={(e) => setNewLineFinalAmount(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Final amount (optional)"
+                        disabled={!newLineFinalPaid}
+                      />
+                      <label className="inline-flex items-center gap-2 rounded border px-2 py-1 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newLineOwned}
+                          onChange={(e) => setNewLineOwned(e.target.checked)}
+                        />
+                        Owned
+                      </label>
+                    </div>
+                  )}
+                  <input
+                    value={newLineExpectedReleaseWindow}
+                    onChange={(e) => setNewLineExpectedReleaseWindow(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    placeholder="Expected release window (e.g. 2026-07)"
+                  />
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-zinc-600">Image (optional)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNewLineImageFile}
+                      className="text-xs"
+                    />
+                    {newLineImageDataUrl ? (
+                      <div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={newLineImageDataUrl}
+                          alt=""
+                          className="mt-1 max-h-28 w-auto rounded border object-contain"
+                        />
+                        <button
+                          type="button"
+                          className="mt-1 text-[11px] text-zinc-600 underline"
+                          onClick={() => setNewLineImageDataUrl(null)}
+                        >
+                          Remove image
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <input
+                    value={newLineNotes}
+                    onChange={(e) => setNewLineNotes(e.target.value)}
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    placeholder="Item notes (optional)"
+                  />
+                </div>
+
+                {/* Order details — secondary */}
+                <div className="space-y-2 border-t pt-3">
+                  <p className="text-xs font-medium text-zinc-500">Order details</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Seller</label>
+                      <input
+                        value={mSeller}
+                        onChange={(e) => setMSeller(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Shop / seller"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-zinc-600">Platform</label>
+                      <input
+                        value={mPlatform}
+                        onChange={(e) => setMPlatform(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="block text-xs font-medium text-zinc-600">Notes (optional)</label>
+                      <input
+                        value={mGroupNotes}
+                        onChange={(e) => setMGroupNotes(e.target.value)}
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="flex gap-2">
