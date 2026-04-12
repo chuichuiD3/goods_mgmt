@@ -46,9 +46,9 @@ export function HoldingItemRow({
   onEImageChange,
 }: HoldingItemRowProps) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded border bg-white p-2 text-xs">
+    <div className={`rounded border bg-white p-2 text-xs ${isEditing ? "flex flex-col gap-2" : "flex items-center justify-between gap-2"}`}>
       <div className="flex items-center gap-2">
-        <div className="h-10 w-10 overflow-hidden rounded border bg-zinc-100">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded border bg-zinc-100">
           {it.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -64,7 +64,7 @@ export function HoldingItemRow({
           )}
         </div>
         {isEditing ? (
-          <div className="space-y-1">
+          <div className="min-w-0 flex-1 space-y-1">
             <input
               value={eName}
               onChange={(e) => setEName(e.target.value)}
@@ -109,7 +109,7 @@ export function HoldingItemRow({
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {isEditing ? (
           <>
             <button

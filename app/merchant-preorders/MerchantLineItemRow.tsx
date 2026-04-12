@@ -91,9 +91,9 @@ export function MerchantLineItemRow({
   clearELineImage,
 }: MerchantLineItemRowProps) {
   return (
-    <div className="flex items-start justify-between gap-2 rounded border bg-white p-2 text-xs">
+    <div className={`rounded border bg-white p-2 text-xs ${isEditing ? "flex flex-col gap-2" : "flex items-start justify-between gap-2"}`}>
       <div className="flex items-start gap-2">
-        <div className="h-10 w-10 overflow-hidden rounded border bg-zinc-100">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded border bg-zinc-100">
           {it.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -108,7 +108,7 @@ export function MerchantLineItemRow({
             </div>
           )}
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           {isEditing ? (
             <div className="space-y-2">
               <input
@@ -259,7 +259,7 @@ export function MerchantLineItemRow({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
           {it.received ? "received" : "waiting"}
         </span>

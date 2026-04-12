@@ -144,7 +144,66 @@ export default function CollectionPage() {
           ) : items.length === 0 ? (
             <div className="text-xs text-zinc-500">No items yet.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile card list — hidden on md+ */}
+            <div className="space-y-2 md:hidden">
+              {items.map((item) => (
+                <div key={item.id} className="rounded border bg-white p-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded border bg-zinc-100">
+                      {item.imageThumbUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.imageThumbUrl}
+                          alt={item.itemName}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-400">
+                          —
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium text-zinc-900">
+                        {item.itemName}
+                      </div>
+                      <div className="mt-0.5 text-xs text-zinc-500">
+                        {[item.series, item.character, item.platform]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                          {item.status}
+                        </span>
+                        <span className="text-sm font-semibold text-zinc-900">
+                          {formatPriceAmount(item.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-2 border-t pt-2">
+                    <button
+                      onClick={() => setEditingItem(item)}
+                      className="rounded border px-3 py-1 text-xs hover:bg-zinc-100"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="rounded border px-3 py-1 text-xs hover:bg-zinc-100"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table — hidden below md */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full border text-sm">
                 <thead className="bg-zinc-100 text-xs">
                   <tr>
@@ -213,6 +272,7 @@ export default function CollectionPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
     </div>

@@ -377,10 +377,10 @@ export default function MerchantPreordersPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Merchant Preorders</h1>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-500">
+          <span className="hidden text-xs text-zinc-500 sm:inline">
             {merchantCounts.activeItems} active / {merchantCounts.totalItems} total items
           </span>
           <button

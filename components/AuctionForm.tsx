@@ -242,7 +242,7 @@ export function AuctionForm({
           <label className="block text-sm font-medium">
             End time (24-hour, local)
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               type="date"
               value={date}
@@ -258,7 +258,7 @@ export function AuctionForm({
                   return next;
                 })
               }
-              className="w-full rounded border px-2 py-1 text-sm"
+              className="min-w-0 flex-1 rounded border px-2 py-1 text-sm"
             />
             <input
               type="number"
