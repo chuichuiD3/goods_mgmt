@@ -28,21 +28,17 @@ type AuctionImportPanelProps = {
 };
 
 export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) {
+  const [activeTab, setActiveTab] = useState<"MANUAL" | "URL">("MANUAL");
   const [url, setUrl] = useState("");
-  const [hintType, setHintType] = useState<string>("UNKNOWN");
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const [auctionDraftTitle, setAuctionDraftTitle] = useState<string>("");
   const [auctionDraftPlatform, setAuctionDraftPlatform] = useState<string>("");
-  const [auctionDraftSourceUrl, setAuctionDraftSourceUrl] =
-    useState<string>("");
-  const [auctionDraftPrice, setAuctionDraftPrice] = useState<string>("");
+  const [auctionDraftSourceUrl, setAuctionDraftSourceUrl] = useState<string>("");
   const [auctionDraftEndIso, setAuctionDraftEndIso] = useState<string>("");
-  const [auctionDraftImage, setAuctionDraftImage] = useState<string | null>(
-    null
-  );
+  const [auctionDraftImage, setAuctionDraftImage] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -54,19 +50,13 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
       const res = await fetch("/api/import-drafts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceUrl: url,
-          hintType: hintType === "UNKNOWN" ? undefined : hintType,
-        }),
+        body: JSON.stringify({ sourceUrl: url }),
       });
       const data: ImportResponse = await res.json();
       setResult(data);
       setAuctionDraftTitle(data.parsed.rawTitle ?? "");
       setAuctionDraftPlatform(data.parsed.platform ?? "");
       setAuctionDraftSourceUrl(data.parsed.sourceUrl ?? url);
-      setAuctionDraftPrice(
-        data.parsed.listedPrice !== null ? String(data.parsed.listedPrice) : ""
-      );
       setAuctionDraftEndIso(data.parsed.auctionEndAt ?? "");
       setAuctionDraftImage(data.parsed.rawImage ?? null);
     } catch (error) {
@@ -85,34 +75,26 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
 
   const saveManualAuction = async () => {
     setMessage(null);
-    const priceNumber =
-      auctionDraftPrice.trim() === "" ? null : Number(auctionDraftPrice.trim());
-
-    const body = {
-      itemName: auctionDraftTitle || "(Untitled)",
-      platform: auctionDraftPlatform || null,
-      auctionUrl: auctionDraftSourceUrl || null,
-      currentPrice: Number.isFinite(priceNumber as number)
-        ? priceNumber
-        : null,
-      auctionEndTime:
-        auctionDraftEndIso.trim() !== ""
-          ? new Date(auctionDraftEndIso).toISOString()
-          : null,
-      imageUrl: auctionDraftImage ?? null,
-    };
-
     try {
       await fetch("/api/auctions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          itemName: auctionDraftTitle || "(Untitled)",
+          platform: auctionDraftPlatform || null,
+          auctionUrl: auctionDraftSourceUrl || null,
+          currentPrice: null,
+          auctionEndTime:
+            auctionDraftEndIso.trim() !== ""
+              ? new Date(auctionDraftEndIso).toISOString()
+              : null,
+          imageUrl: auctionDraftImage ?? null,
+        }),
       });
       setMessage("Saved successfully.");
       setAuctionDraftTitle("");
       setAuctionDraftPlatform("");
       setAuctionDraftSourceUrl("");
-      setAuctionDraftPrice("");
       setAuctionDraftEndIso("");
       setAuctionDraftImage(null);
       await onAuctionSaved?.();
@@ -125,21 +107,15 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
   const saveImportedAsAuction = async () => {
     if (!result) return;
     const { parsed } = result;
-    const common = { itemName: parsed.rawTitle ?? "" };
-    const priceNumber =
-      auctionDraftPrice.trim() === "" ? null : Number(auctionDraftPrice);
-
     try {
       await fetch("/api/auctions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          itemName: auctionDraftTitle || common.itemName,
+          itemName: auctionDraftTitle || parsed.rawTitle || "(Untitled)",
           platform: auctionDraftPlatform || parsed.platform || null,
           auctionUrl: auctionDraftSourceUrl || parsed.sourceUrl,
-          currentPrice: Number.isFinite(priceNumber as number)
-            ? priceNumber
-            : null,
+          currentPrice: parsed.listedPrice ?? null,
           auctionEndTime: auctionDraftEndIso || parsed.auctionEndAt,
           imageUrl: auctionDraftImage ?? parsed.rawImage ?? null,
         }),
@@ -156,43 +132,57 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
   const noop = () => {};
 
   return (
-    <section className="mb-6 space-y-4">
-      <h2 className="text-sm font-semibold">Import auction</h2>
-      <p className="text-xs text-zinc-500">
-        Parse a listing URL or enter auction details manually. Saves to your
-        auction list.
-      </p>
+    <div className="space-y-3">
+      {/* Tab strip */}
+      <div className="flex items-center gap-2 border-b pb-2 text-xs font-medium">
+        <button
+          type="button"
+          className={`rounded-full px-3 py-1 ${
+            activeTab === "MANUAL"
+              ? "bg-zinc-900 text-white"
+              : "text-zinc-600 hover:bg-zinc-100"
+          }`}
+          onClick={() => setActiveTab("MANUAL")}
+        >
+          Manual entry
+        </button>
+        <button
+          type="button"
+          className={`rounded-full px-3 py-1 ${
+            activeTab === "URL"
+              ? "bg-zinc-900 text-white"
+              : "text-zinc-600 hover:bg-zinc-100"
+          }`}
+          onClick={() => {
+            setActiveTab("URL");
+            setMessage(null);
+          }}
+        >
+          Import from URL
+        </button>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-3 rounded border bg-white p-4 text-sm">
-          <h3 className="text-sm font-semibold">Manual entry</h3>
-          <ImportDraftCard
-            sourceUrl={auctionDraftSourceUrl}
-            platform={auctionDraftPlatform}
-            title={auctionDraftTitle}
-            imageUrl={auctionDraftImage}
-            listedPrice={
-              auctionDraftPrice.trim() !== ""
-                ? Number(auctionDraftPrice)
-                : null
-            }
-            auctionEndAt={auctionDraftEndIso || null}
-            recommendedDestination="AUCTION"
-            onChangeImage={setAuctionDraftImage}
-            onChangeTitle={setAuctionDraftTitle}
-            onChangePlatform={setAuctionDraftPlatform}
-            onChangeSourceUrl={setAuctionDraftSourceUrl}
-            onChangePrice={setAuctionDraftPrice}
-            onChangeAuctionEndAt={setAuctionDraftEndIso}
-            onSaveAsAuction={saveManualAuction}
-            onSaveAsCollection={noop}
-            onSaveAsWishlist={noop}
-            auctionImportOnly
-          />
-        </div>
+      {activeTab === "MANUAL" && (
+        <ImportDraftCard
+          sourceUrl={auctionDraftSourceUrl}
+          platform={auctionDraftPlatform}
+          title={auctionDraftTitle}
+          imageUrl={auctionDraftImage}
+          auctionEndAt={auctionDraftEndIso || null}
+          onChangeImage={setAuctionDraftImage}
+          onChangeTitle={setAuctionDraftTitle}
+          onChangePlatform={setAuctionDraftPlatform}
+          onChangeSourceUrl={setAuctionDraftSourceUrl}
+          onChangeAuctionEndAt={setAuctionDraftEndIso}
+          onSaveAsAuction={saveManualAuction}
+          onSaveAsCollection={noop}
+          onSaveAsWishlist={noop}
+          auctionImportOnly
+        />
+      )}
 
-        <div className="space-y-3 rounded border bg-white p-4 text-sm">
-          <h3 className="text-sm font-semibold">Import from URL</h3>
+      {activeTab === "URL" && (
+        <div className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
               <label className="block text-sm font-medium">Source URL</label>
@@ -205,21 +195,6 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
                 placeholder="Paste product or auction URL"
               />
             </div>
-
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Type hint</label>
-              <select
-                value={hintType}
-                onChange={(e) => setHintType(e.target.value)}
-                className="w-full rounded border px-2 py-1 text-sm"
-              >
-                <option value="UNKNOWN">Let app guess</option>
-                <option value="AUCTION">Auction</option>
-                {/* WISHLIST hint omitted in UI while Wishlist is de-emphasized; API/parser still accept hint if needed. */}
-                <option value="PURCHASE">Purchase</option>
-              </select>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -230,38 +205,29 @@ export function AuctionImportPanel({ onAuctionSaved }: AuctionImportPanelProps) 
           </form>
 
           {result && (
-            <div className="mt-4">
-              <ImportDraftCard
-                sourceUrl={auctionDraftSourceUrl || result.parsed.sourceUrl}
-                platform={auctionDraftPlatform || result.parsed.platform}
-                title={auctionDraftTitle || result.parsed.rawTitle}
-                imageUrl={auctionDraftImage}
-                listedPrice={
-                  auctionDraftPrice.trim() !== ""
-                    ? Number(auctionDraftPrice)
-                    : result.parsed.listedPrice
-                }
-                auctionEndAt={auctionDraftEndIso || result.parsed.auctionEndAt}
-                recommendedDestination={result.parsed.recommendedDestination}
-                onChangeImage={setAuctionDraftImage}
-                onChangeTitle={setAuctionDraftTitle}
-                onChangePlatform={setAuctionDraftPlatform}
-                onChangeSourceUrl={setAuctionDraftSourceUrl}
-                onChangePrice={setAuctionDraftPrice}
-                onChangeAuctionEndAt={setAuctionDraftEndIso}
-                onSaveAsAuction={saveImportedAsAuction}
-                onSaveAsCollection={noop}
-                onSaveAsWishlist={noop}
-                auctionImportOnly
-              />
-            </div>
+            <ImportDraftCard
+              sourceUrl={auctionDraftSourceUrl || result.parsed.sourceUrl}
+              platform={auctionDraftPlatform || result.parsed.platform}
+              title={auctionDraftTitle || result.parsed.rawTitle}
+              imageUrl={auctionDraftImage}
+              auctionEndAt={auctionDraftEndIso || result.parsed.auctionEndAt}
+              onChangeImage={setAuctionDraftImage}
+              onChangeTitle={setAuctionDraftTitle}
+              onChangePlatform={setAuctionDraftPlatform}
+              onChangeSourceUrl={setAuctionDraftSourceUrl}
+              onChangeAuctionEndAt={setAuctionDraftEndIso}
+              onSaveAsAuction={saveImportedAsAuction}
+              onSaveAsCollection={noop}
+              onSaveAsWishlist={noop}
+              auctionImportOnly
+            />
           )}
         </div>
-      </div>
+      )}
 
       {message && (
         <div className="text-xs text-zinc-600">{message}</div>
       )}
-    </section>
+    </div>
   );
 }
